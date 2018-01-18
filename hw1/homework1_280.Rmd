@@ -1,0 +1,41 @@
+---
+title: "Hw1_280"
+author: "Sarah ji"
+date: "1/18/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+#setwd("/Users/sarahji/Desktop/biostat-m280-2018-winter")
+knitr::opts_chunk$set(echo = T)
+knitr::opts_chunk$set(evaluate = F)
+```
+
+Use Linux shell commands to answer following questions.
+
+1. How many persons are in the data set (statisticians call this n)? How many SNPs are in the data set (statisticians call this p)?
+
+There are n = 959 people in the sataset. 
+
+```{bash, echo= FALSE, eval = FALSE}
+wc -l /home/m280-data/hw1/merge-geno.fam
+```
+
+There are 8348674 SNP's in the dataset.
+
+```{bash, echo= FALSE, eval = FALSE}
+wc -l /home/m280-data/hw1/merge-geno.bim
+```
+
+
+2. Which chromosomes does this data set contain? How many SNPs are in each chromosome?
+
+This dataset contains chromosomes 1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21.
+
+```{bash, echo= FALSE, eval = FALSE}
+awk -F " " '!_[$1]++' /home/m280-data/hw1/merge-geno.bim | awk '{print $1}'
+```
+
+There are SNP's in each chromosome.
+
+3. MAP4 (microtubule-associated protein 4) is a gene on chromosome 3 spanning positions 47,892,180 bp – 48,130,769 bp. How many SNPs are located within MAP4 gene?
