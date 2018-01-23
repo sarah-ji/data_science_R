@@ -105,6 +105,7 @@ Yes I did. The finalized file in Mendel's pedigree formatting is stored in the '
 #First we make a copy of the fam file to grant us permission to make edits!
 cp /home/m280-data/hw1/merge-geno.fam newpedfile
 
+#trying new commit rmd
 #Then we will strip the string T2DG from the IDs.
 sed -i 's/T2DG//' newpedfile
 sed -i 's/T2DG//' newpedfile
@@ -127,6 +128,40 @@ $$
   \frac{\sum_{r=1}^{\text{rep}} (\widehat \mu_r - \mu_{\text{true}})^2}{\text{rep}}
 $$
 for both methods.
+
+```{r, echo= FALSE, eval = FALSE}
+## parsing command arguments
+for (arg in commandArgs(TRUE)) {
+  eval(parse(text=arg))
+}
+
+## check if a given integer is prime
+isPrime = function(n) {
+  if (n <= 3) {
+    return (TRUE)
+  }
+  if (any((n %% 2:floor(sqrt(n))) == 0)) {
+    return (FALSE)
+  }
+  return (TRUE)
+}
+
+## estimate mean only using observation with prime indices
+estMeanPrimes = function (x) {
+  n = length(x)
+  ind = sapply(1:n, isPrime)
+  return (mean(x[ind]))
+}
+
+# simulate data
+x = rnorm(n)
+
+# estimate mean
+estMeanPrimes(x)
+
+```
+
+
 
 2. Modify the [`autoSim.R`](http://hua-zhou.github.io/teaching/biostatm280-2018winter/slides/02-linux/autoSim.R) script to run simulations with combinations of sample sizes `nVals = seq(100, 500, by=100)` and distributions `distTypes = c("gaussian", "t1", "t5")` and write output to appropriately named files. Use `rep = 50`, and `seed = 280`. 
 
