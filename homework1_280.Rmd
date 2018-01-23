@@ -17,13 +17,13 @@ Use Linux shell commands to answer following questions.
 
 There are n = 959 people in the sataset. 
 
-```{bash}
+```{bash, echo= FALSE, eval = FALSE}
 wc -l /home/m280-data/hw1/merge-geno.fam
 ```
 
 There are 8348674 SNP's in the dataset.
 
-```{bash}
+```{bash, echo= FALSE, eval = FALSE}
 wc -l /home/m280-data/hw1/merge-geno.bim
 ```
 
@@ -32,10 +32,49 @@ wc -l /home/m280-data/hw1/merge-geno.bim
 
 This dataset contains chromosomes 1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21.
 
-```{bash}
+
+```{bash, echo= FALSE, eval = FALSE}
 awk -F " " '!_[$1]++' /home/m280-data/hw1/merge-geno.bim | awk '{print $1}'
 ```
 
-There are SNP's in each chromosome.
+Below are the count of SNP's in each chromosome.
+Chromosome Count:
+Chromosome 1 has 1309299 SNP's
+Chromosome 3 has 1215399 SNP's
+Chromosome 5 has 1090185 SNP's
+Chromosome 7 has 980944 SNP's
+Chromosome 9 has 732013 SNP's
+Chromosome 11 has 815860 SNP's
+Chromosome 13 has 602809 SNP's
+Chromosome 15 has 491208 SNP's
+Chromosome 17 has 477990 SNP's
+Chromosome 19 has 393615 SNP's
+Chromosome 21 has 239352 SNP's
+
+```{bash, echo= FALSE, eval = FALSE}
+awk '{h[$1]++} END { for(k in h) print k, h[k] }' /home/m280-data/hw1/merge-geno.bim | sort -n
+```
 
 3. MAP4 (microtubule-associated protein 4) is a gene on chromosome 3 spanning positions 47,892,180 bp – 48,130,769 bp. How many SNPs are located within MAP4 gene?
+
+There are 894 SNP's located within the MAP4 gene.
+
+```{bash, echo= FALSE, eval = FALSE}
+awk '$1 ==3  && $4 >= 47892180 && $4 <= 48130769 {count++} END {print count}' /home/m280-data/hw1/merge-geno.bim
+```
+
+4. Write a Linux shell command to convert merge-geno.fam to Mendel pedigree file. Since twin status is not available in plink format, we put nothing for that field. Also Mendel limits Person ID to have length less than or equal to 8 characters, so we have to strip the string T2DG from the IDs. 
+
+First we make a copy of the fam file to grant us permission to make edits!
+Then we will strip the string T2DG from the IDs.
+Then we make the last column of 0's into missing values
+```{bash, echo= FALSE, eval = FALSE}
+cp /home/m280-data/hw1/merge-geno.fam newpedfile
+sed -i 's/T2DG//' newpedfile
+awk '{OFS="\t";if($5=="1") {$5="M";} else if($5=="2") {$5="F";} else {$5="0";}print;}' newpedfile > out.ped 
+awk '{print $1, $2, $3, $4, $5, ""}' out.ped > out2.ped
+sed -i 's/T2DG//' out2.ped
+sed -i 's/T2DG//' out2.ped
+```
+
+
