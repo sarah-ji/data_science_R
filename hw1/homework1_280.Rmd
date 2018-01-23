@@ -65,15 +65,20 @@ awk '$1 ==3  && $4 >= 47892180 && $4 <= 48130769 {count++} END {print count}' /h
 
 4. Write a Linux shell command to convert merge-geno.fam to Mendel pedigree file. Since twin status is not available in plink format, we put nothing for that field. Also Mendel limits Person ID to have length less than or equal to 8 characters, so we have to strip the string T2DG from the IDs. 
 
-First we make a copy of the fam file to grant us permission to make edits!
-Then we will strip the string T2DG from the IDs.
-Then we make the last column of 0's into missing values
 ```{bash, echo= FALSE, eval = FALSE}
+#First we make a copy of the fam file to grant us permission to make edits!
 cp /home/m280-data/hw1/merge-geno.fam newpedfile
+
+#Then we will strip the string T2DG from the IDs.
 sed -i 's/T2DG//' newpedfile
 sed -i 's/T2DG//' newpedfile
 sed -i 's/T2DG//' newpedfile
+
+#make comma separated 
+#make sex M F and save it to out.ped
 awk '{OFS=","; if($5=="1") {$5="M";} else if($5=="2") {$5="F";} else {$5="0";}print;}' newpedfile > out.ped 
+
+#Then we make the last column of 0's into missing values
 #awk '{print $1, $2, $3, $4, $5, ""}' out.ped > out2.ped
 #awk '{OFS=","; if($3=="0") {$3="";}}' out.ped > out2.ped
 ```
