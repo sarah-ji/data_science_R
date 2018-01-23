@@ -53,6 +53,7 @@ Chromosome 21 has 239352 SNP's
 
 ```{bash, echo= FALSE, eval = FALSE}
 awk '{h[$1]++} END { for(k in h) print k, h[k] }' /home/m280-data/hw1/merge-geno.bim | sort -n
+
 ```
 
 3. MAP4 (microtubule-associated protein 4) is a gene on chromosome 3 spanning positions 47,892,180 bp – 48,130,769 bp. How many SNPs are located within MAP4 gene?
@@ -76,11 +77,15 @@ sed -i 's/T2DG//' newpedfile
 
 #make comma separated 
 #make sex M F and save it to out.ped
-awk '{OFS=","; if($5=="1") {$5="M";} else if($5=="2") {$5="F";} else {$5="0";}print;}' newpedfile > out.ped 
+awk '{OFS = ","; if ($5 == "1") {$5 = "M";} else if ($5 == "2") {$5 = "F";} else {$5 = "0";} print;}' newpedfile > out.ped 
 
 #Then we make the last column of 0's into missing values
+
+#this makes too many missing values...
 #awk '{print $1, $2, $3, $4, $5, ""}' out.ped > out2.ped
-#awk '{OFS=","; if($3=="0") {$3="";}}' out.ped > out2.ped
+#awk '{OFS = "\t"; if($3=="0") {$3="";} }' newpedfile
+
+
 ```
 
 
