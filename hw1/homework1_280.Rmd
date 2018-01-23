@@ -8,8 +8,23 @@ output: html_document
 ```{r setup, include=FALSE}
 #setwd("/Users/sarahji/Desktop/biostat-m280-2018-winter")
 knitr::opts_chunk$set(echo = T)
-knitr::opts_chunk$set(evaluate = F)
+knitr::opts_chunk$set(evaluate = F) # on the teaching server this will be true since i have the files there
 ```
+
+##Q1. Git/Github
+1. Apply for the Student Developer Pack at GitHub using your UCLA email.
+
+Yes I did.
+
+2. Create a private repository biostat-m280-2018-winter and add Hua-Zhou and juhkim111 as your collaborators with write permission. Top directories of the repository should be hw1, hw2, … Maintain two branches master and develop. The develop branch will be your main playground, the place where you develop solution (code) to homework problems and write up report. The master branch will be your presentation area. Submit your homework files (R markdown file Rmd, html file converted from R markdown, all code and data sets to reproduce results) in master branch.
+
+Yes I did.
+
+3. Top directories of the repository should be hw1, hw2, … Maintain two branches master and develop. The develop branch will be your main playground, the place where you develop solution (code) to homework problems and write up report. The master branch will be your presentation area. Submit your homework files (R markdown file Rmd, html file converted from R markdown, all code and data sets to reproduce results) in master branch.
+
+Yes I did.
+
+##Q2. Linux Shell Commands
 
 Use Linux shell commands to answer following questions.
 
@@ -88,4 +103,4 @@ awk '{OFS = ","; if ($5 == "1") {$5 = "M";} else if ($5 == "2") {$5 = "F";} else
 
 ```
 
-
+##Q3. R Batch Run
