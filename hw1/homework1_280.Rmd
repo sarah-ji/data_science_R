@@ -99,6 +99,8 @@ cp /home/m280-data/hw1/merge-geno.bim newdeffile
 #to output into a comma separated format we switch columns 2 and 1 and then skip 3 and print straight to 4 as mendel format requires
 #the new SNP def file will be saved as SNPdeffile
 awk '{OFS= ","; print $2, $1, $4}' newdeffile > SNPdeffile
+sed '1s/^/8348674 = NUMBER OF SNPS LISTED HERE.\n/' SNPdeffile > SNPdeffile2
+sed '1s/^/    2.40 = FILE FORMAT VERSION NUMBER.\n/' SNPdeffile2 > SNPdeffile3
 ```
     
 Yes I did. The finalized file in Mendel's pedigree formatting is stored in the 'SNPdeffile' file located on the teaching server.
