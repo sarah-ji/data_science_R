@@ -39,13 +39,13 @@ Use Linux shell commands to answer following questions.
 
 There are n = 959 people in the dataset. 
 
-```{bash, echo= FALSE, eval = FALSE}
+```{bash, echo= FALSE, eval = TRUE}
 wc -l /home/m280-data/hw1/merge-geno.fam
 ```
 
 There are 8,348,674 SNP's in the dataset.
 
-```{bash, echo= FALSE, eval = FALSE}
+```{bash, echo= FALSE, eval = TRUE}
 wc -l /home/m280-data/hw1/merge-geno.bim
 ```
 
@@ -55,7 +55,7 @@ wc -l /home/m280-data/hw1/merge-geno.bim
 This dataset contains chromosomes 1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21.
 
 
-```{bash, echo= FALSE, eval = FALSE}
+```{bash, echo= FALSE, eval = TRUE}
 awk -F " " '!_[$1]++' /home/m280-data/hw1/merge-geno.bim | awk '{print $1}'
 ```
 
@@ -73,7 +73,7 @@ Chromosome 17 has 477990 SNP's
 Chromosome 19 has 393615 SNP's
 Chromosome 21 has 239352 SNP's
 
-```{bash, echo= FALSE, eval = FALSE}
+```{bash, echo= FALSE, eval = TRUE}
 awk '{h[$1]++} END { for(k in h) print k, h[k] }' /home/m280-data/hw1/merge-geno.bim | sort -n
 
 ```
@@ -82,7 +82,7 @@ awk '{h[$1]++} END { for(k in h) print k, h[k] }' /home/m280-data/hw1/merge-geno
 
 There are 894 SNP's located within the MAP4 gene.
 
-```{bash, echo= FALSE, eval = FALSE}
+```{bash, echo= FALSE, eval = TRUE}
 awk '$1 ==3  && $4 >= 47892180 && $4 <= 48130769 {count++} END {print count}' /home/m280-data/hw1/merge-geno.bim
 ```
 
@@ -92,15 +92,14 @@ awk '$1 ==3  && $4 >= 47892180 && $4 <= 48130769 {count++} END {print count}' /h
       `SNP ID`, `Chromosome`, `Base Pair Position`  
       with each field separated by a comma. Write a Linux shell command to convert `merge-geno.bim` to Mendel SNP definition file. 
       
-```{bash, echo= FALSE, eval = FALSE}
+```{bash, echo= FALSE, eval = TRUE}
 #First we make a copy of the fam file to grant us permission to make edits!
 cp /home/m280-data/hw1/merge-geno.bim newdeffile
 
 #to output into a comma separated format we switch columns 2 and 1 and then skip 3 and print straight to 4 as mendel format requires
 #the new SNP def file will be saved as SNPdeffile
 awk '{OFS= ","; print $2, $1, $4}' newdeffile > SNPdeffile
-sed '1s/^/8348674 = NUMBER OF SNPS LISTED HERE.\n/' SNPdeffile > SNPdeffile2
-sed '1s/^/    2.40 = FILE FORMAT VERSION NUMBER.\n/' SNPdeffile2 > SNPdeffile3
+head -20 SNPdeffile
 ```
     
 Yes I did. The finalized file in Mendel's pedigree formatting is stored in the 'SNPdeffile' file located on the teaching server.
@@ -111,7 +110,7 @@ Yes I did. The finalized file in Mendel's pedigree formatting is stored in the '
 
 Yes I did. The finalized file in Mendel's pedigree formatting is stored in the 'out.ped' file located on the teaching server.
 
-```{bash, echo= FALSE, eval = FALSE}
+```{bash, echo= FALSE, eval = TRUE}
 #First we make a copy of the fam file to grant us permission to make edits!
 cp /home/m280-data/hw1/merge-geno.fam newpedfile
 
@@ -127,6 +126,7 @@ sed -i 's/T2DG//' newpedfile
 #make sex M F and save it to out.ped the finalized pedigree file is out.ped
 awk '{OFS = ","; if ($3 == "0") {$3 = "";} if ($4 == "0") {$4 = "";} if ($6 == "0") {$6 = "";} if ($5 == "1") {$5 = "M";} else if ($5 == "2") {$5 = "F";} else {$5 = "0";} print;}' newpedfile > out.ped 
 
+head -20 out.ped
 ```
 
 ## Q3. R Batch Run
@@ -144,15 +144,26 @@ for both methods.
 
 3. Write an R script to collect simulation results from output files and print average MSEs in a table of format
 
-| $n$ | Method   | $t_1$ | $t_5$ | Gaussian |
-|-----|----------|-------|-------|----------|
-| 100 | PrimeAvg |       |       |          |
-|     | SampAvg  |       |       |          |
-| 200 | PrimeAvg |       |       |          |
-|     | SampAvg  |       |       |          |
-| 300 | PrimeAvg |       |       |          |
-|     | SampAvg  |       |       |          |
-| 400 | PrimeAvg |       |       |          |
-|     | SampAvg  |       |       |          |
-| 500 | PrimeAvg |       |       |          |
-|     | SampAvg  |       |       |          |
+```{r, echo= FALSE, eval = TRUE}
+n100gaussian = read.table("n100gaussian.txt")
+n100t1 = read.table("n100t1.txt")
+n100t5 = read.table("n100t5.txt")
+  
+n200gaussian = read.table("n200gaussian.txt")
+n200t1 = read.table("n200t1.txt")
+n200t5 = read.table("n200t5.txt")
+  
+n300gaussian = read.table("n300gaussian.txt")
+n300t1 = read.table("n300t1.txt")
+n300t5 = read.table("n300t5.txt")
+
+n400gaussian = read.table("n400gaussian.txt")
+n400t1 = read.table("n400t1.txt")
+n400t5 = read.table("n400t5.txt")
+
+n500gaussian = read.table("n500gaussian.txt")
+n500t1 = read.table("n500t1.txt")
+n500t5 = read.table("n500t5.txt")
+
+```
+
