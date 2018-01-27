@@ -63,6 +63,6 @@ regularMSE = sum(regularmeansq)/rep
 # prime-indexed sample average
 primeMSE = sum(primemeansq)/rep
 
-MSE = c(regularMSE, primeMSE)
+MSE = matrix(c(primeMSE, regularMSE), ncol = 1, dimnames = list(c("primeMSE","sampleMSE"), NULL))
 
 MSE

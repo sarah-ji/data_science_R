@@ -147,6 +147,7 @@ for both methods.
 3. Write an R script to collect simulation results from output files and print average MSEs in a table of format
 
 ```{r, echo= FALSE, eval = T}
+library(knitr)
 n100gaussian = read.table(file ="n100gaussian.txt")
 n100t1 = read.table("n100t1.txt")
 n100t5 = read.table("n100t5.txt")
@@ -167,6 +168,18 @@ n500gaussian = read.table("n500gaussian.txt")
 n500t1 = read.table("n500t1.txt")
 n500t5 = read.table("n500t5.txt")
 
+#binding all gaussian distributions
+dist_gaussian = rbind(n100gaussian, n200gaussian, n300gaussian, n400gaussian, n500gaussian)
+
+#binding all the t1 distributions
+dist_t1 = rbind(n100t1, n200t1, n300t1, n400t1, n500t1)
+
+#binding all the t5 distributions
+dist_t5 = rbind(n100t5, n200t5, n300t5, n400t5, n500t5)
+
+names(dist_gaussian) = "Gaussian"
+names(dist_t1) = "t1"
+names(dist_t5) = "t5"
 
 nVals = seq(100, 500, by=100)
 distTypes = c("gaussian", "t1", "t5")
@@ -174,9 +187,15 @@ Method = rep(c("PrimeAvg","SampAvg"), length.out= 10)
 
 CollectSim = as.data.frame(matrix(NA, ncol = 5, nrow = 10))
 CollectSim[ , 2] = Method
-  for(i in 1:5){
+names(CollectSim) = c("n", "Method", "t1", "t5", "Gaussian")
+CollectSim$Gaussian = dist_gaussian$Gaussian
+CollectSim$t1 = dist_t1$t1
+CollectSim$t5 = dist_t5$t5
+
+for(i in 1:5){
     CollectSim[2*i-1, 1] = nVals[i]
-    CollectSim[2*i-1, 3] = 
-    }
+}
+
+kable(CollectSim, digits = 3)
 ```
 

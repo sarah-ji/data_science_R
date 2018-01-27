@@ -251,6 +251,89 @@ with each field separated by a comma. Write a Linux shell command to convert `me
 <li><p>Modify the <a href="http://hua-zhou.github.io/teaching/biostatm280-2018winter/slides/02-linux/autoSim.R"><code>autoSim.R</code></a> script to run simulations with combinations of sample sizes <code>nVals = seq(100, 500, by=100)</code> and distributions <code>distTypes = c(&quot;gaussian&quot;, &quot;t1&quot;, &quot;t5&quot;)</code> and write output to appropriately named files. Use <code>rep = 50</code>, and <code>seed = 280</code>.</p></li>
 <li><p>Write an R script to collect simulation results from output files and print average MSEs in a table of format</p></li>
 </ol>
+<table>
+<thead>
+<tr class="header">
+<th align="right">n</th>
+<th align="left">Method</th>
+<th align="right">t1</th>
+<th align="right">t5</th>
+<th align="right">Gaussian</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">100</td>
+<td align="left">PrimeAvg</td>
+<td align="right">2808.426</td>
+<td align="right">0.066</td>
+<td align="right">0.041</td>
+</tr>
+<tr class="even">
+<td align="right">NA</td>
+<td align="left">SampAvg</td>
+<td align="right">230.237</td>
+<td align="right">0.017</td>
+<td align="right">0.009</td>
+</tr>
+<tr class="odd">
+<td align="right">200</td>
+<td align="left">PrimeAvg</td>
+<td align="right">799.314</td>
+<td align="right">0.042</td>
+<td align="right">0.019</td>
+</tr>
+<tr class="even">
+<td align="right">NA</td>
+<td align="left">SampAvg</td>
+<td align="right">95.880</td>
+<td align="right">0.008</td>
+<td align="right">0.007</td>
+</tr>
+<tr class="odd">
+<td align="right">300</td>
+<td align="left">PrimeAvg</td>
+<td align="right">446.402</td>
+<td align="right">0.024</td>
+<td align="right">0.020</td>
+</tr>
+<tr class="even">
+<td align="right">NA</td>
+<td align="left">SampAvg</td>
+<td align="right">53.577</td>
+<td align="right">0.005</td>
+<td align="right">0.004</td>
+</tr>
+<tr class="odd">
+<td align="right">400</td>
+<td align="left">PrimeAvg</td>
+<td align="right">19.451</td>
+<td align="right">0.024</td>
+<td align="right">0.011</td>
+</tr>
+<tr class="even">
+<td align="right">NA</td>
+<td align="left">SampAvg</td>
+<td align="right">20.534</td>
+<td align="right">0.004</td>
+<td align="right">0.003</td>
+</tr>
+<tr class="odd">
+<td align="right">500</td>
+<td align="left">PrimeAvg</td>
+<td align="right">217.269</td>
+<td align="right">0.012</td>
+<td align="right">0.011</td>
+</tr>
+<tr class="even">
+<td align="right">NA</td>
+<td align="left">SampAvg</td>
+<td align="right">20.788</td>
+<td align="right">0.003</td>
+<td align="right">0.003</td>
+</tr>
+</tbody>
+</table>
 </div>
 
 
