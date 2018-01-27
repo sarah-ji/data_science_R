@@ -146,8 +146,8 @@ for both methods.
 
 3. Write an R script to collect simulation results from output files and print average MSEs in a table of format
 
-```{r, echo= FALSE, eval = F}
-n100gaussian = read.table("n100gaussian.txt")
+```{r, echo= FALSE, eval = T}
+n100gaussian = read.table(file ="n100gaussian.txt")
 n100t1 = read.table("n100t1.txt")
 n100t5 = read.table("n100t5.txt")
   
@@ -167,5 +167,16 @@ n500gaussian = read.table("n500gaussian.txt")
 n500t1 = read.table("n500t1.txt")
 n500t5 = read.table("n500t5.txt")
 
+
+nVals = seq(100, 500, by=100)
+distTypes = c("gaussian", "t1", "t5")
+Method = rep(c("PrimeAvg","SampAvg"), length.out= 10)
+
+CollectSim = as.data.frame(matrix(NA, ncol = 5, nrow = 10))
+CollectSim[ , 2] = Method
+  for(i in 1:5){
+    CollectSim[2*i-1, 1] = nVals[i]
+    CollectSim[2*i-1, 3] = 
+    }
 ```
 
