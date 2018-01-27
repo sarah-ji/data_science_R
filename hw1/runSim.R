@@ -30,6 +30,7 @@ regularmeansq = NULL
 primemeansq = NULL
 
 
+#loop for given dist
 for( i in 1:rep){
   if(dist == "gaussian"){
     sample_normdistributions = rnorm(n)

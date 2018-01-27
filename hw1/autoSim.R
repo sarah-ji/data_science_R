@@ -1,5 +1,6 @@
 # autoSim.R
 
+#for these values
 nVals = seq(100, 500, by=100)
 distTypes = c("gaussian", "t1", "t5")
 
