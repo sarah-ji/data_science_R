@@ -5,10 +5,10 @@ date: "1/18/2018"
 output: html_document
 ---
 
-```{r setup, include=FALSE}
-#setwd("/Users/sarahji/Desktop/biostat-m280-2018-winter")
+```{r setup, include=FALSE} 
 knitr::opts_chunk$set(echo = T)
-knitr::opts_chunk$set(evaluate = F) # on the teaching server this will be true since i have the files there
+knitr::opts_chunk$set(evaluate = T) 
+# on the teaching server this will be true since i have the files there
 ```
 
 ## Q1. Git/GitHub
@@ -96,7 +96,8 @@ awk '$1 ==3  && $4 >= 47892180 && $4 <= 48130769 {count++} END {print count}' /h
 #First we make a copy of the fam file to grant us permission to make edits!
 cp /home/m280-data/hw1/merge-geno.bim newdeffile
 
-#to output into a comma separated format we switch columns 2 and 1 and then skip 3 and print straight to 4 as mendel format requires
+#to output into a comma separated format we switch columns 2 and 1 and then 
+#skip 3 and print straight to 4 as mendel format requires
 #the new SNP def file will be saved as SNPdeffile
 awk '{OFS= ","; print $2, $1, $4}' newdeffile > SNPdeffile
 sed '1s/^/8348674 = NUMBER OF SNPS LISTED HERE.\n/' SNPdeffile > SNPdeffile2
@@ -104,7 +105,7 @@ sed '1s/^/    2.40 = FILE FORMAT VERSION NUMBER.\n/' SNPdeffile2 > SNPdeffile3
 head -20 SNPdeffile3
 ```
     
-Yes I did. The finalized file in Mendel's pedigree formatting is stored in the 'SNPdeffile' file located on the teaching server.
+Yes I did. As the bash code above shows, the finalized file in Mendel's pedigree formatting is stored in the 'SNPdeffile3' file located on the teaching server.
     
     - Mendel's pedigree file is similar to the plink `fam` file but has format  
     `Family ID`, `Person ID`, `Father ID`, `Mother ID`, `Sex` coded as M or F, `Twin Status`  
@@ -123,13 +124,14 @@ sed -i 's/T2DG//' newpedfile
 sed -i 's/T2DG//' newpedfile
 
 #make comma separated 
-#Then we make the 3rd and 4th column of 0's into missing values (dad and mom id = 0 is missing in .fam files)
+#Then we make the 3rd and 4th column of 0's into missing values (dad and mom 
+#id = 0 is missing in .fam files)
 #Then we make the last column of 0's into missing values
 #make sex M F and save it to out.ped the finalized pedigree file is out.ped
 awk '{OFS = ","; if ($3 == "0") {$3 = "";} if ($4 == "0") {$4 = "";} if ($6 == "0") {$6 = "";} if ($5 == "1") {$5 = "M";} else if ($5 == "2") {$5 = "F";} else {$5 = "0";} print;}' newpedfile > out.ped 
-
 head -20 out.ped
 ```
+
 
 ## Q3. R Batch Run
 
@@ -141,14 +143,17 @@ $$
 $$
 for both methods.
 
+I have.
 
 2. Modify the [`autoSim.R`](http://hua-zhou.github.io/teaching/biostatm280-2018winter/slides/02-linux/autoSim.R) script to run simulations with combinations of sample sizes `nVals = seq(100, 500, by=100)` and distributions `distTypes = c("gaussian", "t1", "t5")` and write output to appropriately named files. Use `rep = 50`, and `seed = 280`. 
+
+I have. They are saved on my teaching server.
 
 3. Write an R script to collect simulation results from output files and print average MSEs in a table of format
 
 ```{r, echo= FALSE, eval = T}
 library(knitr)
-n100gaussian = read.table(file ="n100gaussian.txt")
+n100gaussian = read.table(file = "n100gaussian.txt")
 n100t1 = read.table("n100t1.txt")
 n100t5 = read.table("n100t5.txt")
   
@@ -169,7 +174,8 @@ n500t1 = read.table("n500t1.txt")
 n500t5 = read.table("n500t5.txt")
 
 #binding all gaussian distributions
-dist_gaussian = rbind(n100gaussian, n200gaussian, n300gaussian, n400gaussian, n500gaussian)
+dist_gaussian = rbind(n100gaussian, n200gaussian, n300gaussian, 
+                      n400gaussian, n500gaussian)
 
 #binding all the t1 distributions
 dist_t1 = rbind(n100t1, n200t1, n300t1, n400t1, n500t1)
@@ -181,9 +187,9 @@ names(dist_gaussian) = "Gaussian"
 names(dist_t1) = "t1"
 names(dist_t5) = "t5"
 
-nVals = seq(100, 500, by=100)
+nVals = seq(100, 500, by = 100)
 distTypes = c("gaussian", "t1", "t5")
-Method = rep(c("PrimeAvg","SampAvg"), length.out= 10)
+Method = rep(c("PrimeAvg", "SampAvg"), length.out = 10)
 
 CollectSim = as.data.frame(matrix(NA, ncol = 5, nrow = 10))
 CollectSim[ , 2] = Method
