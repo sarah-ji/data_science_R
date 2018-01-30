@@ -143,15 +143,24 @@ $$
 $$
 for both methods.
 
-I have.
+```{bash, echo= FALSE, eval = TRUE}
+cd /home/sarahh.jii/biostat-m280-2018-winter/hw1
+Rscript runSim.R n=100 dist='"gaussian"' seed=280 rep=50
+```
+
+I have. The results for n=100, dist = "gaussian" , seed = 280, rep = 50 are displayed above. 
 
 2. Modify the [`autoSim.R`](http://hua-zhou.github.io/teaching/biostatm280-2018winter/slides/02-linux/autoSim.R) script to run simulations with combinations of sample sizes `nVals = seq(100, 500, by=100)` and distributions `distTypes = c("gaussian", "t1", "t5")` and write output to appropriately named files. Use `rep = 50`, and `seed = 280`. 
 
+```{bash, echo= FALSE, eval = TRUE}
+cd /home/sarahh.jii/biostat-m280-2018-winter/hw1
+Rscript autoSim.R
+```
 I have. They are saved on my teaching server.
 
 3. Write an R script to collect simulation results from output files and print average MSEs in a table of format
 
-```{r, echo= FALSE, eval = T}
+```{r, echo= FALSE, eval = TRUE}
 library(knitr)
 n100gaussian = read.table(file = "n100gaussian.txt")
 n100t1 = read.table("n100t1.txt")

@@ -41,7 +41,7 @@ for( i in 1:rep){
   }
   
   else if(dist == "t1"){
-    sample_t1distributions = rt(n = n,df =  1)
+    sample_t1distributions = rt(n = n, df =  1)
     t1mean = mean(sample_t1distributions)
     t1primemean = estMeanPrimes(sample_t1distributions)
     regularmeansq[i] = t1mean^2
@@ -49,7 +49,7 @@ for( i in 1:rep){
   }
   
   else if(dist == "t5"){
-    sample_t5distributions = rt(n = n,df =  5)
+    sample_t5distributions = rt(n = n, df =  5)
     t5mean = mean(sample_t5distributions)
     t5primemean = estMeanPrimes(sample_t5distributions)
     regularmeansq[i] = t5mean^2
