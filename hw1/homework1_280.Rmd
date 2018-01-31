@@ -162,7 +162,7 @@ I have. They are saved on my teaching server.
 
 ```{r, echo= FALSE, eval = TRUE}
 library(knitr)
-n100gaussian = read.table(file = "n100gaussian.txt")
+n100gaussian = read.table("n100gaussian.txt")
 n100t1 = read.table("n100t1.txt")
 n100t5 = read.table("n100t5.txt")
   
