@@ -1,0 +1,216 @@
+---
+title: "Hw1_280"
+author: "Sarah ji"
+date: "1/18/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE} 
+knitr::opts_chunk$set(echo = T)
+knitr::opts_chunk$set(evaluate = T) 
+# on the teaching server this will be true since i have the files there
+```
+
+## Q1. Git/GitHub
+
+**No handwritten homework reports are accepted for this course.** We work with Git and GitHub. Efficient and abundant use of Git, e.g., frequent and well-documented commits, is an important criterion for grading your homework.
+
+1. Apply for the [Student Developer Pack](https://education.github.com/pack) at GitHub using your UCLA email.
+
+Yes I did.
+
+2. Create a **private** repository `biostat-m280-2018-winter` and add `Hua-Zhou` and `juhkim111` as your collaborators with write permission.
+
+Yes I did.
+
+3. Top directories of the repository should be `hw1`, `hw2`, ... Maintain two branches `master` and `develop`. The `develop` branch will be your main playground, the place where you develop solution (code) to homework problems and write up report. The `master` branch will be your presentation area. Submit your homework files (R markdown file `Rmd`, `html` file converted from R markdown, all code and data sets to reproduce results) in `master` branch.
+
+Yes I did.
+
+4. After each homework due date, teaching assistant and instructor will check out your master branch for grading. Tag each of your homework submissions with tag names `hw1`, `hw2`, ... Tagging time will be used as your submission time. That means if you tag your `hw1` submission after deadline, penalty points will be deducted for late submission.
+
+Yes I did.
+
+##Q2. Linux Shell Commands
+
+Use Linux shell commands to answer following questions.
+
+1. How many persons are in the data set (statisticians call this `n`)? How many SNPs are in the data set (statisticians call this `p`)?
+
+There are n = 959 people in the dataset. 
+
+```{bash, echo= FALSE, eval = TRUE}
+wc -l /home/m280-data/hw1/merge-geno.fam
+```
+
+There are 8,348,674 SNP's in the dataset.
+
+```{bash, echo= FALSE, eval = TRUE}
+wc -l /home/m280-data/hw1/merge-geno.bim
+```
+
+
+2. Which chromosomes does this data set contain? How many SNPs are in each chromosome?
+
+This dataset contains chromosomes 1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21.
+
+
+```{bash, echo= FALSE, eval = TRUE}
+awk -F " " '!_[$1]++' /home/m280-data/hw1/merge-geno.bim | awk '{print $1}'
+```
+
+Below are the count of SNP's in each chromosome.
+Chromosome Count:
+Chromosome 1 has 1309299 SNP's
+Chromosome 3 has 1215399 SNP's
+Chromosome 5 has 1090185 SNP's
+Chromosome 7 has 980944 SNP's
+Chromosome 9 has 732013 SNP's
+Chromosome 11 has 815860 SNP's
+Chromosome 13 has 602809 SNP's
+Chromosome 15 has 491208 SNP's
+Chromosome 17 has 477990 SNP's
+Chromosome 19 has 393615 SNP's
+Chromosome 21 has 239352 SNP's
+
+```{bash, echo= FALSE, eval = TRUE}
+awk '{h[$1]++} END { for(k in h) print k, h[k] }' /home/m280-data/hw1/merge-geno.bim | sort -n
+
+```
+
+3. MAP4 (microtubule-associated protein 4) is a gene on chromosome 3 spanning positions 47,892,180 bp – 48,130,769 bp. How many SNPs are located within MAP4 gene?
+
+There are 894 SNP's located within the MAP4 gene.
+
+```{bash, echo= FALSE, eval = TRUE}
+awk '$1 ==3  && $4 >= 47892180 && $4 <= 48130769 {count++} END {print count}' /home/m280-data/hw1/merge-geno.bim
+```
+
+4. Statistical geneticists often have to reformat a data set to feed into various analysis programs. For example, to use the Mendel software <http://www.genetics.ucla.edu/software/mendel>, we have to reformat the data set to be read by Mendel.
+
+      - Mendel's SNP definition file is similar to the plink `bim` file but has format  
+      `SNP ID`, `Chromosome`, `Base Pair Position`  
+      with each field separated by a comma. Write a Linux shell command to convert `merge-geno.bim` to Mendel SNP definition file. 
+      
+```{bash, echo= FALSE, eval = TRUE}
+#First we make a copy of the fam file to grant us permission to make edits!
+cp /home/m280-data/hw1/merge-geno.bim newdeffile
+
+#to output into a comma separated format we switch columns 2 and 1 and then 
+#skip 3 and print straight to 4 as mendel format requires
+#the new SNP def file will be saved as SNPdeffile
+awk '{OFS= ","; print $2, $1, $4}' newdeffile > SNPdeffile
+sed '1s/^/8348674 = NUMBER OF SNPS LISTED HERE.\n/' SNPdeffile > SNPdeffile2
+sed '1s/^/    2.40 = FILE FORMAT VERSION NUMBER.\n/' SNPdeffile2 > SNPdeffile3
+head -20 SNPdeffile3
+```
+    
+Yes I did. As the bash code above shows, the finalized file in Mendel's pedigree formatting is stored in the 'SNPdeffile3' file located on the teaching server.
+    
+    - Mendel's pedigree file is similar to the plink `fam` file but has format  
+    `Family ID`, `Person ID`, `Father ID`, `Mother ID`, `Sex` coded as M or F, `Twin Status`  
+    with each field separated by a comma. Write a Linux shell command to convert `merge-geno.fam` to Mendel pedigree file. Since twin status is not available in plink format, we put nothing for that field. Also Mendel limits Person ID to have length less than or equal to 8 characters, so we have to strip the string `T2DG` from the IDs. 
+
+Yes I did. The finalized file in Mendel's pedigree formatting is stored in the 'out.ped' file located on the teaching server.
+
+```{bash, echo= FALSE, eval = TRUE}
+#First we make a copy of the fam file to grant us permission to make edits!
+cp /home/m280-data/hw1/merge-geno.fam newpedfile
+
+#trying new commit rmd
+#Then we will strip the string T2DG from the IDs.
+sed -i 's/T2DG//' newpedfile
+sed -i 's/T2DG//' newpedfile
+sed -i 's/T2DG//' newpedfile
+
+#make comma separated 
+#Then we make the 3rd and 4th column of 0's into missing values (dad and mom 
+#id = 0 is missing in .fam files)
+#Then we make the last column of 0's into missing values
+#make sex M F and save it to out.ped the finalized pedigree file is out.ped
+awk '{OFS = ","; if ($3 == "0") {$3 = "";} if ($4 == "0") {$4 = "";} if ($6 == "0") {$6 = "";} if ($5 == "1") {$5 = "M";} else if ($5 == "2") {$5 = "F";} else {$5 = "0";} print;}' newpedfile > out.ped 
+head -20 out.ped
+```
+
+
+## Q3. R Batch Run
+
+In class we discussed using R to organize simulation studies. 
+
+1. Expand the [`runSim.R`](http://hua-zhou.github.io/teaching/biostatm280-2018winter/slides/02-linux/runSim.R) script to include arguments `seed` (random seed), `n` (sample size), `dist` (distribution) and `rep` (number of simulation replicates). When `dist="gaussian"`, generate data from standard normal; when `dist="t1"`, generate data from t-distribution with degree of freedom 1 (same as Cauchy distribution); when `dist="t5"`, generate data from t-distribution with degree of freedom 5. Calling `runSim.R` will (1) set random seed according to argument `seed`, (2) generate data according to argument `dist`, (3) compute the primed-indexed average estimator in class and the classical sample average estimator for each simulation replicate, (4) report the average mean squared error (MSE)
+$$
+  \frac{\sum_{r=1}^{\text{rep}} (\widehat \mu_r - \mu_{\text{true}})^2}{\text{rep}}
+$$
+for both methods.
+
+```{bash, echo= FALSE, eval = TRUE}
+cd /home/sarahh.jii/biostat-m280-2018-winter/hw1
+Rscript runSim.R n=100 dist='"gaussian"' seed=280 rep=50
+```
+
+I have. The results for n=100, dist = "gaussian" , seed = 280, rep = 50 are displayed above. 
+
+2. Modify the [`autoSim.R`](http://hua-zhou.github.io/teaching/biostatm280-2018winter/slides/02-linux/autoSim.R) script to run simulations with combinations of sample sizes `nVals = seq(100, 500, by=100)` and distributions `distTypes = c("gaussian", "t1", "t5")` and write output to appropriately named files. Use `rep = 50`, and `seed = 280`. 
+
+```{bash, echo= FALSE, eval = TRUE}
+cd /home/sarahh.jii/biostat-m280-2018-winter/hw1
+Rscript autoSim.R
+```
+I have. They are saved on my teaching server.
+
+3. Write an R script to collect simulation results from output files and print average MSEs in a table of format
+
+```{r, echo= FALSE, eval = TRUE}
+library(knitr)
+n100gaussian = read.table("n100gaussian.txt")
+n100t1 = read.table("n100t1.txt")
+n100t5 = read.table("n100t5.txt")
+  
+n200gaussian = read.table("n200gaussian.txt")
+n200t1 = read.table("n200t1.txt")
+n200t5 = read.table("n200t5.txt")
+  
+n300gaussian = read.table("n300gaussian.txt")
+n300t1 = read.table("n300t1.txt")
+n300t5 = read.table("n300t5.txt")
+
+n400gaussian = read.table("n400gaussian.txt")
+n400t1 = read.table("n400t1.txt")
+n400t5 = read.table("n400t5.txt")
+
+n500gaussian = read.table("n500gaussian.txt")
+n500t1 = read.table("n500t1.txt")
+n500t5 = read.table("n500t5.txt")
+
+#binding all gaussian distributions
+dist_gaussian = rbind(n100gaussian, n200gaussian, n300gaussian, 
+                      n400gaussian, n500gaussian)
+
+#binding all the t1 distributions
+dist_t1 = rbind(n100t1, n200t1, n300t1, n400t1, n500t1)
+
+#binding all the t5 distributions
+dist_t5 = rbind(n100t5, n200t5, n300t5, n400t5, n500t5)
+
+names(dist_gaussian) = "Gaussian"
+names(dist_t1) = "t1"
+names(dist_t5) = "t5"
+
+nVals = seq(100, 500, by = 100)
+distTypes = c("gaussian", "t1", "t5")
+Method = rep(c("PrimeAvg", "SampAvg"), length.out = 10)
+
+CollectSim = as.data.frame(matrix(NA, ncol = 5, nrow = 10))
+CollectSim[ , 2] = Method
+names(CollectSim) = c("n", "Method", "t1", "t5", "Gaussian")
+CollectSim$Gaussian = dist_gaussian$Gaussian
+CollectSim$t1 = dist_t1$t1
+CollectSim$t5 = dist_t5$t5
+
+for(i in 1:5){
+    CollectSim[2*i-1, 1] = nVals[i]
+}
+
+kable(CollectSim, digits = 3)
+```
+
