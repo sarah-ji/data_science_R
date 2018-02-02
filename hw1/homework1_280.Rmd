@@ -57,18 +57,17 @@ awk -F " " '!_[$1]++' /home/m280-data/hw1/merge-geno.bim | awk '{print $1}'
 ```
 
 Below are the count of SNP's in each chromosome.
-Chromosome Count:
-Chromosome 1 has 1309299 SNP's
-Chromosome 3 has 1215399 SNP's
-Chromosome 5 has 1090185 SNP's
-Chromosome 7 has 980944 SNP's
-Chromosome 9 has 732013 SNP's
-Chromosome 11 has 815860 SNP's
-Chromosome 13 has 602809 SNP's
-Chromosome 15 has 491208 SNP's
-Chromosome 17 has 477990 SNP's
-Chromosome 19 has 393615 SNP's
-Chromosome 21 has 239352 SNP's
+Chromosome 1 has 1309299 SNP's,
+Chromosome 3 has 1215399 SNP's,
+Chromosome 5 has 1090185 SNP's,
+Chromosome 7 has 980944 SNP's,
+Chromosome 9 has 732013 SNP's,
+Chromosome 11 has 815860 SNP's,
+Chromosome 13 has 602809 SNP's,
+Chromosome 15 has 491208 SNP's,
+Chromosome 17 has 477990 SNP's,
+Chromosome 19 has 393615 SNP's,
+Chromosome 21 has 239352 SNP's.
 
 ```{bash, echo= FALSE, eval = TRUE}
 awk '{h[$1]++} END { for(k in h) print k, h[k] }' /home/m280-data/hw1/merge-geno.bim | sort -n
