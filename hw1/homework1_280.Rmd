@@ -13,23 +13,21 @@ knitr::opts_chunk$set(evaluate = T)
 
 ## Q1. Git/GitHub
 
-**No handwritten homework reports are accepted for this course.** We work with Git and GitHub. Efficient and abundant use of Git, e.g., frequent and well-documented commits, is an important criterion for grading your homework.
-
 1. Apply for the [Student Developer Pack](https://education.github.com/pack) at GitHub using your UCLA email.
 
-Yes I did.
+**Answer:** Yes I did.
 
 2. Create a **private** repository `biostat-m280-2018-winter` and add `Hua-Zhou` and `juhkim111` as your collaborators with write permission.
 
-Yes I did.
+**Answer:** Yes I did.
 
 3. Top directories of the repository should be `hw1`, `hw2`, ... Maintain two branches `master` and `develop`. The `develop` branch will be your main playground, the place where you develop solution (code) to homework problems and write up report. The `master` branch will be your presentation area. Submit your homework files (R markdown file `Rmd`, `html` file converted from R markdown, all code and data sets to reproduce results) in `master` branch.
 
-Yes I did.
+**Answer:** Yes I did.
 
 4. After each homework due date, teaching assistant and instructor will check out your master branch for grading. Tag each of your homework submissions with tag names `hw1`, `hw2`, ... Tagging time will be used as your submission time. That means if you tag your `hw1` submission after deadline, penalty points will be deducted for late submission.
 
-Yes I did.
+**Answer:** Yes I did.
 
 ##Q2. Linux Shell Commands
 
@@ -37,13 +35,13 @@ Use Linux shell commands to answer following questions.
 
 1. How many persons are in the data set (statisticians call this `n`)? How many SNPs are in the data set (statisticians call this `p`)?
 
-There are n = 959 people in the dataset. 
+**Answer:** There are n = 959 people in the dataset. 
 
 ```{bash, echo= FALSE, eval = TRUE}
 wc -l /home/m280-data/hw1/merge-geno.fam
 ```
 
-There are 8,348,674 SNP's in the dataset.
+**Answer:** There are 8,348,674 SNP's in the dataset.
 
 ```{bash, echo= FALSE, eval = TRUE}
 wc -l /home/m280-data/hw1/merge-geno.bim
@@ -52,26 +50,24 @@ wc -l /home/m280-data/hw1/merge-geno.bim
 
 2. Which chromosomes does this data set contain? How many SNPs are in each chromosome?
 
-This dataset contains chromosomes 1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21.
-
+**Answer:** This dataset contains chromosomes 1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21.
 
 ```{bash, echo= FALSE, eval = TRUE}
 awk -F " " '!_[$1]++' /home/m280-data/hw1/merge-geno.bim | awk '{print $1}'
 ```
 
 Below are the count of SNP's in each chromosome.
-Chromosome Count:
-Chromosome 1 has 1309299 SNP's
-Chromosome 3 has 1215399 SNP's
-Chromosome 5 has 1090185 SNP's
-Chromosome 7 has 980944 SNP's
-Chromosome 9 has 732013 SNP's
-Chromosome 11 has 815860 SNP's
-Chromosome 13 has 602809 SNP's
-Chromosome 15 has 491208 SNP's
-Chromosome 17 has 477990 SNP's
-Chromosome 19 has 393615 SNP's
-Chromosome 21 has 239352 SNP's
+Chromosome 1 has 1309299 SNP's,
+Chromosome 3 has 1215399 SNP's,
+Chromosome 5 has 1090185 SNP's,
+Chromosome 7 has 980944 SNP's,
+Chromosome 9 has 732013 SNP's,
+Chromosome 11 has 815860 SNP's,
+Chromosome 13 has 602809 SNP's,
+Chromosome 15 has 491208 SNP's,
+Chromosome 17 has 477990 SNP's,
+Chromosome 19 has 393615 SNP's,
+Chromosome 21 has 239352 SNP's.
 
 ```{bash, echo= FALSE, eval = TRUE}
 awk '{h[$1]++} END { for(k in h) print k, h[k] }' /home/m280-data/hw1/merge-geno.bim | sort -n
@@ -80,7 +76,7 @@ awk '{h[$1]++} END { for(k in h) print k, h[k] }' /home/m280-data/hw1/merge-geno
 
 3. MAP4 (microtubule-associated protein 4) is a gene on chromosome 3 spanning positions 47,892,180 bp – 48,130,769 bp. How many SNPs are located within MAP4 gene?
 
-There are 894 SNP's located within the MAP4 gene.
+**Answer:** There are 894 SNP's located within the MAP4 gene.
 
 ```{bash, echo= FALSE, eval = TRUE}
 awk '$1 ==3  && $4 >= 47892180 && $4 <= 48130769 {count++} END {print count}' /home/m280-data/hw1/merge-geno.bim
@@ -91,7 +87,9 @@ awk '$1 ==3  && $4 >= 47892180 && $4 <= 48130769 {count++} END {print count}' /h
       - Mendel's SNP definition file is similar to the plink `bim` file but has format  
       `SNP ID`, `Chromosome`, `Base Pair Position`  
       with each field separated by a comma. Write a Linux shell command to convert `merge-geno.bim` to Mendel SNP definition file. 
-      
+
+**Answer:**  
+     
 ```{bash, echo= FALSE, eval = TRUE}
 #First we make a copy of the fam file to grant us permission to make edits!
 cp /home/m280-data/hw1/merge-geno.bim newdeffile
@@ -143,6 +141,8 @@ $$
 $$
 for both methods.
 
+**Answer:** 
+
 ```{bash, echo= FALSE, eval = TRUE}
 cd /home/sarahh.jii/biostat-m280-2018-winter/hw1
 Rscript runSim.R n=100 dist='"gaussian"' seed=280 rep=50
@@ -152,6 +152,8 @@ I have. The results for n=100, dist = "gaussian" , seed = 280, rep = 50 are disp
 
 2. Modify the [`autoSim.R`](http://hua-zhou.github.io/teaching/biostatm280-2018winter/slides/02-linux/autoSim.R) script to run simulations with combinations of sample sizes `nVals = seq(100, 500, by=100)` and distributions `distTypes = c("gaussian", "t1", "t5")` and write output to appropriately named files. Use `rep = 50`, and `seed = 280`. 
 
+**Answer:** 
+
 ```{bash, echo= FALSE, eval = TRUE}
 cd /home/sarahh.jii/biostat-m280-2018-winter/hw1
 Rscript autoSim.R
@@ -159,6 +161,8 @@ Rscript autoSim.R
 I have. They are saved on my teaching server.
 
 3. Write an R script to collect simulation results from output files and print average MSEs in a table of format
+
+**Answer:** 
 
 ```{r, echo= FALSE, eval = TRUE}
 library(knitr)
@@ -213,4 +217,3 @@ for(i in 1:5){
 
 kable(CollectSim, digits = 3)
 ```
-
