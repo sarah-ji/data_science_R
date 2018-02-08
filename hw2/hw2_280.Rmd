@@ -1,0 +1,85 @@
+---
+title: "Biostat M280 Homework 2"
+subtitle: Due Feb 16 @ 11:59PM
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Q1
+
+Read [Chapter 7](http://r4ds.had.co.nz/exploratory-data-analysis.html) (Exploratory Data Analysis) of _R for Data Science_ and do exercises 7.3.4, 7.4.1, 7.5.1.1, 7.5.2.1, and 7.5.3.1.
+
+7.3.4 Exercises
+1. Explore the distribution of each of the x, y, and z variables in diamonds. What do you learn? Think about a diamond and how you might decide which dimension is the length, width, and depth.
+
+```{r}
+#histogram of the x variable
+ggplot(data = diamonds) +
+  geom_bar(mapping = aes(x = x))
+```
+
+```{r}
+#histogram of the y variable
+ggplot(data = diamonds) +
+  geom_bar(mapping = aes(x = y))
+```
+
+```{r}
+#histogram of the z variable
+ggplot(data = diamonds) +
+  geom_bar(mapping = aes(x = z))
+```
+
+```{r}
+#histogram of the z variable
+ggplot(data = diamonds) +
+  geom_bar(mapping = aes(x = depth))
+```
+
+
+2. Explore the distribution of price. Do you discover anything unusual or surprising? (Hint: Carefully think about the binwidth and make sure you try a wide range of values.)
+
+```{r}
+ggplot(data = diamonds) +
+  geom_histogram(mapping = aes(x = price), binwidth = 0.5)
+```
+
+
+3. How many diamonds are 0.99 carat? How many are 1 carat? What do you think is the cause of the difference?
+
+```{r}
+poin99carat <- diamonds %>% 
+  filter(carat == 0.99)
+
+n_99caret = dim(poin99carat)[1]
+
+onecarat <- diamonds %>% 
+  filter(carat == 1)
+
+n_1caret = dim(onecarat)[1]
+
+answer3 = c(n_99caret, n_1caret)
+answer3 = as.data.frame(answer3)
+rownames(answer3) = c("0.99 caret count", "1 caret count")
+colnames(answer3) = "N"
+answer3
+```
+
+There are a 23 diamonds with 0.99 carat size, and 1558 diamonds with 1 carat size. I think the cause of the difference is: 
+
+4. Compare and contrast coord_cartesian() vs xlim() or ylim() when zooming in on a histogram. What happens if you leave binwidth unset? What happens if you try and zoom so only half a bar shows?
+
+## Q2 (optional)
+
+Read [Chapter 23](http://r4ds.had.co.nz/model-basics.html) (Model Basics) and [Chapter 24](http://r4ds.had.co.nz/model-building.html) (Model Building) of _R for Data Science_ and do exercises 24.2.3 and 24.3.5.
+
+## Q3
+
+Redo HW1 Q2 using tidyverse.
+
+## Q4 (optional)
+
+Redo HW1 Q3 on Hoffman2, except now we want to submit each `runSum.R` job to a different node in the cluster.
