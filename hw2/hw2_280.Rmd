@@ -1,11 +1,17 @@
 ---
-title: "Biostat M280 Homework 2"
+  title: "Biostat M280 Homework 2"
 subtitle: Due Feb 16 @ 11:59PM
 output: html_document
 ---
-
-```{r setup, include=FALSE}
+  
+  ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library("tidyverse")
+library("viridis")
+library("forcats")
 ```
 
 ## Q1
@@ -34,19 +40,41 @@ ggplot(data = diamonds) +
 ```
 
 ```{r}
-#histogram of the z variable
-ggplot(data = diamonds) +
-  geom_bar(mapping = aes(x = depth))
+diamonds %>%
+  mutate(id = row_number()) %>%
+  select(x, y, z, id) %>%
+  gather(variable, value, -id)  %>%
+  ggplot(aes(x = value)) +
+  geom_density() +
+  geom_rug() +
+  facet_grid(variable ~ .)
 ```
 
+From the distributions of each of the x, y, and z variables in diamonds, we see that they are bi-modal and right skewed. As expected, there are higher counts of smaller diamonds than larger diamonds, and there are two outliers in y and z. 
+
+I am not sure how to determine which of the dimensions x, y and z are, but from what we have read it seems that the variable x is length, variable y is width and variable z is the depth. This makes some intuitive sense, as most diamonds are not as deep as they are wide or long. Picturing a diamond on an engagement ring, most diamonds lay flatter to the finger than the width/length of the diamond. 
 
 2. Explore the distribution of price. Do you discover anything unusual or surprising? (Hint: Carefully think about the binwidth and make sure you try a wide range of values.)
 
 ```{r}
-ggplot(data = diamonds) +
-  geom_histogram(mapping = aes(x = price), binwidth = 0.5)
+ggplot(filter(diamonds), aes(x = price)) +
+  geom_histogram(binwidth = 50, center = 0)
+
+#ggplot(data = diamonds[diamonds$price < 1600,]) + 
+#  geom_bar(mapping = aes(x = price, fill = clarity), position = "dodge")
 ```
 
+There are no diamonds with a price of $1,500.
+
+```{r}
+ggplot(filter(diamonds, price < 1600), aes(x = price, fill = carat)) +
+  geom_histogram(binwidth = 10, center = 0)
+```
+
+```{r}
+ggplot(filter(diamonds, price > 4000), aes(x = price, fill = carat)) +
+  geom_histogram(binwidth = 10, center = 0)
+```
 
 3. How many diamonds are 0.99 carat? How many are 1 carat? What do you think is the cause of the difference?
 
@@ -63,22 +91,161 @@ n_1caret = dim(onecarat)[1]
 
 answer3 = c(n_99caret, n_1caret)
 answer3 = as.data.frame(answer3)
-rownames(answer3) = c("0.99 caret count", "1 caret count")
+rownames(answer3) = c("0.99 carat count", "1 carat count")
 colnames(answer3) = "N"
 answer3
 ```
 
-There are a 23 diamonds with 0.99 carat size, and 1558 diamonds with 1 carat size. I think the cause of the difference is: 
+There are a 23 diamonds with 0.99 carat size, and 1558 diamonds with 1 carat size. That is, there are more than 67 times as many 1 carat diamonds as 0.99 carat diamonds. I think the cause of the difference is that there are spikes at 0.25 carat intervals. It makes intuitive sense that the diamond producers are "rounding up" their diamond cuts, as there is a significant increase in price from a 0.99 carat size diamond to a 1.0 carat size diamond. 
+
+
+```{r}
+diamonds %>%
+  filter(carat >= 0.9, carat <= 1.1) %>%
+  count(carat) %>%
+  print(n = 20)
+```
+
+
+```{r}
+ggplot(data = diamonds, mapping = aes(x = carat)) +
+  geom_histogram(binwidth = 0.01)
+```
 
 4. Compare and contrast coord_cartesian() vs xlim() or ylim() when zooming in on a histogram. What happens if you leave binwidth unset? What happens if you try and zoom so only half a bar shows?
+
+coord_cartesian simply zooms in on the area specified by the limits. The calculation of the histogram is unaffected.
+
+```{r}
+
+```
+
 
 ## Q2 (optional)
 
 Read [Chapter 23](http://r4ds.had.co.nz/model-basics.html) (Model Basics) and [Chapter 24](http://r4ds.had.co.nz/model-building.html) (Model Building) of _R for Data Science_ and do exercises 24.2.3 and 24.3.5.
 
+1. In the plot of lcarat vs. lprice, there are some bright vertical strips. What do they represent?
+
+```{r}
+ggplot(diamonds2, aes(lcarat, lprice)) + 
+  geom_hex(bins = 50)
+```
+
+
+2. If log(price) = a_0 + a_1 * log(carat), what does that say about the relationship between price and carat?
+
+```{r}
+
+```
+
+
+3. Extract the diamonds that have very high and very low residuals. Is there anything unusual about these diamonds? Are the particularly bad or good, or do you think these are pricing errors?
+
+```{r}
+
+```
+
+
+4. Does the final model, mod_diamonds2, do a good job of predicting diamond prices? Would you trust it to tell you how much to spend if you were buying a diamond?
+
+
+```{r}
+
+```
+
+
 ## Q3
 
 Redo HW1 Q2 using tidyverse.
+
+1. How many persons are in the data set (statisticians call this `n`)? How many SNPs are in the data set (statisticians call this `p`)?
+
+```{r}
+snpfam = read.table(file = "/home/m280-data/hw1/merge-geno.fam")
+#number_of_people = dim(snpfam)[1]
+number_of_people = n_distinct(snpfam$V2)
+number_of_people
+```
+
+```{r}
+snpbim = read.table(file = "/home/m280-data/hw1/merge-geno.bim")
+#number_of_snps = dim(snpbim)[1]
+number_of_snps = n_distinct(snpbim$V2)
+number_of_snps
+```
+**Answer:** There are n = 959 people in the dataset.
+**Answer:** There are 8,348,674 SNP's in the dataset.
+
+2. Which chromosomes does this data set contain? How many SNPs are in each chromosome?
+
+```{r}
+#chromosomes = unique(snpbim$V1)
+#chromosomes
+chromosomes <- snpbim %>% 
+group_by(V1) %>% 
+summarise(count = n())
+chromosomes
+#chromosome_counts = as.data.frame(table(snpbim$V1))
+#names(chromosome_counts) = c("Chromosome", "# of SNP's")
+#chromosome_counts
+```
+
+**Answer:** This dataset contains chromosomes 1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21. Their counts are displayed below:
+
+
+3. MAP4 (microtubule-associated protein 4) is a gene on chromosome 3 spanning positions 47,892,180 bp -- 48,130,769 bp. How many SNPs are located within MAP4 gene?
+
+```{r}
+#MAP4 = snpbim[(snpbim$V1 == 3 & 
+#snpbim$V4 >= 47892180 & snpbim$V4 <= 48130769), ]
+#numberofsnps_MAP4 = dim(MAP4)[1]
+#numberofsnps_MAP4
+
+numberofsnps_MAP4 <- snpbim %>% 
+filter(V1 == 3 & V4 >= 47892180 & snpbim$V4 <= 48130769) %>%
+summarise(count = n())
+numberofsnps_MAP4
+```
+
+**Answer:** There are 894 SNP's located within the MAP4 gene.
+
+4. Statistical geneticists often have to reformat a data set to feed into various analysis programs. For example, to use the Mendel software <http://www.genetics.ucla.edu/software/mendel>, we have to reformat the data set to be read by Mendel.
+
+- Mendel's SNP definition file is similar to the plink `bim` file but has format  
+`SNP ID`, `Chromosome`, `Base Pair Position`  
+with each field separated by a comma. Write a Linux shell command to convert `merge-geno.bim` to Mendel SNP definition file.
+
+```{r}
+#snpdef_mendel = cbind(snpbim$V2, snpbim$V1, snpbim$V4)
+#snpdef_mendel = as.factor(snpdef_mendel)
+mendel_snp_def = snpbim %>% select(V2, V1, V4) %>% unite(format, sep =",")
+mendel_snp_def = as.data.frame(mendel_snp_def)
+#first_two_rows = as.data.frame(c("    2.40 = FILE FORMAT VERSION NUMBER.","8348674  = NUMBER OF SNPS LISTED HERE."))
+#mendel_snp_defd = rbind(first_two_rows, mendel_snp_def)
+```
+
+
+- Mendel's pedigree file is similar to the plink `fam` file but has format  
+`Family ID`, `Person ID`, `Father ID`, `Mother ID`, `Sex` coded as M or F, `Twin Status`  
+with each field separated by a comma. Write a Linux shell command to convert `merge-geno.fam` to Mendel pedigree file. Since twin status is not available in plink format, we put nothing for that field. Also Mendel limits Person ID to have length less than or equal to 8 characters, so we have to strip the string `T2DG` from the IDs. 
+
+```{r}
+#get rid of T2DG in V2 of snpfam
+snpfam$V2 = snpfam$V2 %>% str_replace("T2DG", "")
+snpfam$V3 = snpfam$V3 %>% str_replace("T2DG", "")
+snpfam$V4 = snpfam$V4 %>% str_replace("T2DG", "")
+snpfam$V3 = na_if(snpfam$V3, 0) 
+snpfam$V4 = na_if(snpfam$V4, 0) 
+snpfam$V6 = na_if(snpfam$V6, 0) 
+snpfam2 = replace_na(snpfam, list(V1 = "", V2 = "",V3 = "", V4 = "", V5 = "", V6 = ""))
+# if v3 or v4 0 then make them missing
+snpfam2$V5 = str_replace_all(snpfam2$V5, c("1" = "M", "2" = "F"))
+# make sex  12 
+snpfam2 %>% select(V1, V2, V3, V4, V5, V6) %>% unite(format, sep =",")
+```
+
+
 
 ## Q4 (optional)
 
