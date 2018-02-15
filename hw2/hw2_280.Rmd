@@ -10,8 +10,6 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r}
 library("tidyverse")
-library("viridis")
-library("forcats")
 ```
 
 ## Q1
@@ -30,12 +28,14 @@ ggplot(data = diamonds) +
 ```{r}
 #histogram of the y variable
 ggplot(data = diamonds) +
+  coord_cartesian(xlim = c(0, 10)) +
   geom_bar(mapping = aes(x = y))
 ```
 
 ```{r}
 #histogram of the z variable
 ggplot(data = diamonds) +
+  coord_cartesian(xlim = c(0, 10)) +
   geom_bar(mapping = aes(x = z))
 ```
 
@@ -162,14 +162,14 @@ Redo HW1 Q2 using tidyverse.
 1. How many persons are in the data set (statisticians call this `n`)? How many SNPs are in the data set (statisticians call this `p`)?
 
 ```{r}
-snpfam = read.table(file = "/home/m280-data/hw1/merge-geno.fam")
+snpfam = read.delim(file = "/home/m280-data/hw1/merge-geno.fam", sep = " ")
 #number_of_people = dim(snpfam)[1]
 number_of_people = n_distinct(snpfam$V2)
 number_of_people
 ```
 
 ```{r}
-snpbim = read.table(file = "/home/m280-data/hw1/merge-geno.bim")
+snpbim = read.tsv(file = "/home/m280-data/hw1/merge-geno.bim")
 #number_of_snps = dim(snpbim)[1]
 number_of_snps = n_distinct(snpbim$V2)
 number_of_snps
@@ -192,7 +192,6 @@ chromosomes
 ```
 
 **Answer:** This dataset contains chromosomes 1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21. Their counts are displayed below:
-
 
 3. MAP4 (microtubule-associated protein 4) is a gene on chromosome 3 spanning positions 47,892,180 bp -- 48,130,769 bp. How many SNPs are located within MAP4 gene?
 
@@ -220,9 +219,11 @@ with each field separated by a comma. Write a Linux shell command to convert `me
 #snpdef_mendel = cbind(snpbim$V2, snpbim$V1, snpbim$V4)
 #snpdef_mendel = as.factor(snpdef_mendel)
 mendel_snp_def = snpbim %>% select(V2, V1, V4) %>% unite(format, sep =",")
-mendel_snp_def = as.data.frame(mendel_snp_def)
-#first_two_rows = as.data.frame(c("    2.40 = FILE FORMAT VERSION NUMBER.","8348674  = NUMBER OF SNPS LISTED HERE."))
-#mendel_snp_defd = rbind(first_two_rows, mendel_snp_def)
+#mendel_snp_def = as.data.frame(mendel_snp_def)
+first_row = "    2.40 = FILE FORMAT VERSION NUMBER."
+second_row = "8348674  = NUMBER OF SNPS LISTED HERE."
+mendel_snp_def = rbind(first_row, second_row, mendel_snp_def)
+head(mendel_snp_def,20)
 ```
 
 
@@ -238,11 +239,13 @@ snpfam$V4 = snpfam$V4 %>% str_replace("T2DG", "")
 snpfam$V3 = na_if(snpfam$V3, 0) 
 snpfam$V4 = na_if(snpfam$V4, 0) 
 snpfam$V6 = na_if(snpfam$V6, 0) 
-snpfam2 = replace_na(snpfam, list(V1 = "", V2 = "",V3 = "", V4 = "", V5 = "", V6 = ""))
+snpfam2 = replace_na(snpfam,
+                     list(V1 = "", V2 = "",V3 = "", V4 = "", V5 = "", V6 = ""))
 # if v3 or v4 0 then make them missing
 snpfam2$V5 = str_replace_all(snpfam2$V5, c("1" = "M", "2" = "F"))
 # make sex  12 
 snpfam2 %>% select(V1, V2, V3, V4, V5, V6) %>% unite(format, sep =",")
+head(snpfam2,20)
 ```
 
 
