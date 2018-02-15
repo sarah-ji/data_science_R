@@ -169,7 +169,7 @@ number_of_people
 ```
 
 ```{r}
-snpbim = read.tsv(file = "/home/m280-data/hw1/merge-geno.bim")
+snpbim = read_tsv(file = "/home/m280-data/hw1/merge-geno.bim")
 #number_of_snps = dim(snpbim)[1]
 number_of_snps = n_distinct(snpbim$V2)
 number_of_snps
