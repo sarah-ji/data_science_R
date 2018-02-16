@@ -15,6 +15,7 @@ knitr::opts_chunk$set(warning = FALSE)
 library("tidyverse")
 library("nycflights13")
 library("ggstance")
+library("lvplot")
 ```
 
 ## Q1
@@ -191,20 +192,53 @@ ggplot(diamonds) + geom_boxploth(aes(x = carat, y = cut_number(price, 10)))
 4. One problem with boxplots is that they were developed in an era of much smaller datasets and tend to display a prohibitively large number of “outlying values”. One approach to remedy this problem is the letter value plot. Install the lvplot package, and try using geom_lv() to display the distribution of price vs cut. What do you learn? How do you interpret the plots?
 
 ```{r}
-
+ggplot(diamonds, aes(x = cut, y = price)) +
+  geom_lv()
 ```
 
 5. Compare and contrast geom_violin() with a facetted geom_histogram(), or a coloured geom_freqpoly(). What are the pros and cons of each method?
 
 ```{r}
-
+ggplot(diamonds) +
+  geom_histogram(aes(x = price)) +
+  facet_wrap(~cut)
 ```
+
+```{r}
+ggplot(diamonds) +
+  geom_freqpoly(aes(x = price)) +
+  facet_wrap(~cut)
+```
+
+```{r}
+ggplot(diamonds) +
+  geom_violin(aes(x = cut, y = price)) + coord_flip()
+```
+
 
 6. If you have a small dataset, it’s sometimes useful to use geom_jitter() to see the relationship between a continuous and categorical variable. The ggbeeswarm package provides a number of methods similar to geom_jitter(). List them and briefly describe what each one does.
 
 ```{r}
 
 ```
+
+###7.5.2.1 Exercises
+1. How could you rescale the count dataset above to more clearly show the distribution of cut within colour, or colour within cut?
+
+2. Use geom_tile() together with dplyr to explore how average flight delays vary by destination and month of year. What makes the plot difficult to read? How could you improve it?
+
+3. Why is it slightly better to use aes(x = color, y = cut) rather than aes(x = cut, y = color) in the example above?
+
+##7.5.3.1 Exercises
+1. Instead of summarising the conditional distribution with a boxplot, you could use a frequency polygon. What do you need to consider when using cut_width() vs cut_number()? How does that impact a visualisation of the 2d distribution of carat and price?
+
+2. Visualise the distribution of carat, partitioned by price.
+
+3. How does the price distribution of very large diamonds compare to small diamonds. Is it as you expect, or does it surprise you?
+
+4. Combine two of the techniques you’ve learned to visualise the combined distribution of cut, carat, and price.
+
+5. Two dimensional plots reveal outliers that are not visible in one dimensional plots. For example, some points in the plot below have an unusual combination of x and y values, which makes the points outliers even though their x and y values appear normal when examined separately.
 
 
 ## Q3
