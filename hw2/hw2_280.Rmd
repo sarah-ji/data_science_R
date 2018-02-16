@@ -16,6 +16,7 @@ library("tidyverse")
 library("nycflights13")
 library("ggstance")
 library("lvplot")
+library("knitr")
 ```
 
 ## Q1
@@ -115,7 +116,7 @@ diamonds %>%
 
 ```{r}
 ggplot(data = diamonds, mapping = aes(x = carat)) +
-  geom_histogram(binwidth = 0.01)
+  geom_histogram(binwidth = 0.01, colour = cut_number(carat, 10))
 ```
 
 4. Compare and contrast coord_cartesian() vs xlim() or ylim() when zooming in on a histogram. What happens if you leave binwidth unset? What happens if you try and zoom so only half a bar shows?
@@ -154,7 +155,7 @@ flights %>%
 ```{r}
 quickndirty = lm(price ~ ., diamonds)
 summary_quickndirty = summary(quickndirty)
-summary_quickndirty
+kable(summary_quickndirty$coefficients, digits = 6)
 ```
 
 **Answer:** We can do a quick and dirty check through doing a quick linear regression model to gain some sense of what predicts price best. It seems that carat and clarity are important. We will now use graphical methods to examine which covariate has the highest correlation with price.
@@ -169,31 +170,45 @@ ggplot(data = diamonds,
 
 ```{r}
 ggplot(diamonds) +
-  geom_point(aes(x = carat, y = price), color = "blue", alpha = 0.5)
+  geom_point(aes(x = carat, y = price), color = "blue", alpha = 0.01)
 ```
 
-**Answer** Volumn and weight are two variables that is most important for predicting the price. Since volumn is highly correlated with weight, they can be considered to be one variable.
+**Answer** Volume and weight are two variables that is most important for predicting the price. Since volumn is highly correlated with weight, they can be considered to be one variable. It's hard to capture the ture relationship between cut and price, because cut and carat, and carat and price, are tightly related. We can get a sense of how the price deviates from just carat by computing the reidulas.
+
+```{r}
+library(modelr)
+library(dplyr)
+mod = lm(log(price) ~ log(carat), data = diamonds)
+
+diamonds2 = diamonds %>% 
+  add_residuals(mod)
+
+ggplot(data = diamonds2) +
+  geom_point(mapping = aes(x = carat, y = resid), color = "purple", alpha = 0.01)
+```
+
+Residuals are bell-shaped indicating that the most common carat size is most variable, which makes sense.
 
 3. Install the ggstance package, and create a horizontal boxplot. How does this compare to using coord_flip()?
 
 ```{r}
 ggplot(diamonds, aes(x = cut_number(price, 10), y = carat)) +
-  geom_boxplot() +
+  geom_boxplot(aes(colour = cut_number(x,4))) +
   coord_flip() +
   xlab("Price")
 ```
 
 ```{r}
-ggplot(diamonds) + geom_boxploth(aes(x = carat, y = cut_number(price, 10)))
+ggplot(diamonds) + geom_boxploth(aes(x = carat, y = cut_number(price, 10), colour = cut_number(x,4)))
 ```
 
-**Answer** 
+**Answer** There appears to be no difference in using either or. I think it's quite useful to have the coor_flip() feature, actually.
 
 4. One problem with boxplots is that they were developed in an era of much smaller datasets and tend to display a prohibitively large number of “outlying values”. One approach to remedy this problem is the letter value plot. Install the lvplot package, and try using geom_lv() to display the distribution of price vs cut. What do you learn? How do you interpret the plots?
 
 ```{r}
-ggplot(diamonds, aes(x = cut, y = price)) +
-  geom_lv()
+ggplot(diamonds, aes(x = cut, y = price, alpha = 0.0005)) +
+  geom_lv(aes(colour = cut_number(carat, 10)))
 ```
 
 5. Compare and contrast geom_violin() with a facetted geom_histogram(), or a coloured geom_freqpoly(). What are the pros and cons of each method?
@@ -309,7 +324,7 @@ mendel_snp_def = snpbim %>% select(X2, X1, X4) %>% unite(format, sep =",")
 first_row = "    2.40 = FILE FORMAT VERSION NUMBER."
 second_row = "8348674  = NUMBER OF SNPS LISTED HERE."
 mendel_snp_def = rbind(first_row, second_row, mendel_snp_def)
-head(mendel_snp_def,20)
+kable(head(as.matrix(mendel_snp_def), 20))
 ```
 
 
@@ -330,7 +345,7 @@ snpfam2 = replace_na(snpfam,
 # if v3 or v4 0 then make them missing
 snpfam2$V5 = str_replace_all(snpfam2$V5, c("1" = "M", "2" = "F"))
 # make sex  12 
-snpfam2 %>% select(V1, V2, V3, V4, V5, V6) %>% unite(format, sep =",")
-head(snpfam2,20)
+snpfam_final = snpfam2 %>% select(V1, V2, V3, V4, V5, V6) %>% unite(format, sep =",")
+kable(head(snpfam_final, 20))
 ```
 
