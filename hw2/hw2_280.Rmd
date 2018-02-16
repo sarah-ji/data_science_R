@@ -17,7 +17,7 @@ needed_packages <- function(requiredpackageslist){
 }
 
 # install and loading the required packages that are not aleady loaded
-ipak(required_packages)
+needed_packages(required_packages)
 
 #hide my warnings and code for neatness
 knitr::opts_chunk$set(echo = FALSE)
@@ -187,20 +187,20 @@ quantile(diamonds$carat)
 
 #Let's categorize the top 10% of carat sizes as the jump from the 75th percentile to the max is huge!
 c1 <- quantile(diamonds$carat, probs = .1) # bottom 10%
-c2 <- quantile(diamonds$carat, probs = .5) #  median
-c3 <- quantile(diamonds$carat, probs = .75)
 c4 <- quantile(diamonds$carat, .9) # top 10%
-
+c6 <- quantile(diamonds$carat, 1)
 ```
+
 
 ```{r}
 #taking a look at the different distributions for the categorized groups
-diamonds %>% mutate(size_categories = cut(diamonds$carat, breaks = c(c1, c2, c3, c4))) %>%
+diamonds %>% mutate(size_categories = cut(diamonds$carat, breaks = c(0, c1, c4, c6))) %>%
     ggplot(aes(price)) +
     geom_density(aes(color = size_categories)) +
-    ggsci::scale_color_d3(labels = c("bottom 10%", "median 50%" , "Above Average 75%", "top 10%"))
+    ggsci::scale_color_d3(labels = c("bottom 10%", "middle 10% - 90%" , "top 10%"))
 ```
 
+**Answer**: We examine price by carat size quantile values, to explore the variation in price for different carat size categories. Notice price seems to be more variable for larger carat sizes, and less variable for diamonds of smaller carat sizes. From the huge peak at the lower values of price, we see that the bottom 10% of carat sizes are are all clustered around the same price. The middle 10-90% seem much more variable than the bottom 10%, but still nonetheless the distribution is still unimodal. The top 10% of carat sizes are quite varible in price, we see some overlap between the middle and top percentile groups, but no overlap between the bottom and the top percentile groups. 
 
 ```{r}
 ggplot(diamonds) +
@@ -286,23 +286,79 @@ This is similar to geom_violin, in that it attempts show the density via width a
 1. How could you rescale the count dataset above to more clearly show the distribution of cut within colour, or colour within cut?
 
 ```{r}
+par(mfrow=c(1,2))
+# color within cut
+diamonds %>% 
+  count(color, cut) %>% 
+  group_by(cut) %>% 
+  mutate(prop = n / sum(n)) %>% 
+  ggplot(aes(x = color, y = cut)) +
+  geom_tile(aes(fill = prop)) +
+  labs(title = "Distribution of Color Within Cut")
 
+diamonds %>% 
+  count(color, cut) %>% 
+  group_by(color) %>% 
+  mutate(prop = n / sum(n)) %>% 
+  ggplot(aes(x = color, y = cut)) +
+  geom_tile(aes(fill = prop)) + 
+  labs(title = "Distribution of Cut Within Color")
+
+par(mfrow=c(1,1))
 ```
 
+**Answer** In the plot above, we use the proportions rather than the counts themselves to better capture the distribution of the cut within color above.
 
 2. Use geom_tile() together with dplyr to explore how average flight delays vary by destination and month of year. What makes the plot difficult to read? How could you improve it?
 
 ```{r}
+flights %>% 
+  group_by(month, dest) %>% 
+  summarise(avg_dep_delay = mean(dep_delay, na.rm = T)) %>% 
+  ggplot(aes(x = factor(month), y = dest, fill = avg_dep_delay)) +
+  geom_tile()
+```
 
+**Answer** From the plot using geom_tile() together with dplyr to explore how average flight delays vary by destination and month of year, we see that it is difficult to read for a number of reasons. Many of the flight destinations have missing values across many months, and currently the data is not in any meaningful order. It could be improved by re-ordering the destinations based on average delay time, and removing missing values.
+
+```{r}
+flights %>% 
+  group_by(month, dest) %>% 
+  summarise(avg_dep_delay = mean(dep_delay, na.rm = TRUE)) %>% 
+  group_by(dest) %>% 
+  filter(n() == 12) %>% 
+  ungroup() %>% 
+  ggplot(aes(x = factor(month), y = reorder(dest, avg_dep_delay, FUN = mean), fill = avg_dep_delay)) +
+  geom_tile() +
+  labs(x = "Month", y = "Destination", fill = "Average Delay Time", title = "Complete + Re-ordered Destinations by Average Delay Time")
 ```
 
 
 3. Why is it slightly better to use aes(x = color, y = cut) rather than aes(x = cut, y = color) in the example above?
 
 ```{r}
+par(mfrow=c(1,2))
+# color within cut
+diamonds %>% 
+  count(color, cut) %>% 
+  group_by(cut) %>% 
+  mutate(prop = n / sum(n)) %>% 
+  ggplot(aes(x = cut, y = color)) +
+  geom_tile(aes(fill = prop)) +
+  labs(title = "Plot with aes(x = cut, y = color)")
 
+diamonds %>% 
+  count(color, cut) %>% 
+  group_by(color) %>% 
+  mutate(prop = n / sum(n)) %>% 
+  ggplot(aes(x = color, y = cut)) +
+  geom_tile(aes(fill = prop)) + 
+  labs(title = "Plot with aes(x = color, y = cut)")
+
+par(mfrow=c(1,1))
 ```
 
+**Answer** It slightly better to use aes(x = color, y = cut) rather than aes(x = cut, y = color) in the example above, strictly because of visual purposes. There are 7 color categories: "D", "E", "F", "G", "H", "I", "J" vs. 5 cut categories: "Fair", "Good", "Very Good", "Premium", "Ideal". Not only is there more color categories than cut categories resulting in rectangular pixels rather than square shaped pixels, but the cut categories are also ordinal while the colors have no categorical ordering.
 
 ##7.5.3.1 Exercises
 1. Instead of summarising the conditional distribution with a boxplot, you could use a frequency polygon. What do you need to consider when using cut_width() vs cut_number()? How does that impact a visualisation of the 2d distribution of carat and price?
