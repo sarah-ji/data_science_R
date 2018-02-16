@@ -9,11 +9,11 @@ output: html_document
 required_packages = c("tidyverse", "nycflights13", "ggstance", "lvplot", "knitr", "ggbeeswarm", "ggsci")
 
 # this function will be checking first to see if the required packages are there or not then I'll install and load them at once.
-ipak <- function(pkg){
-    new.pkg <- pkg[!(pkg %in% installed.packages()[, "Package"])]
-    if (length(new.pkg)) 
-        install.packages(new.pkg, dependencies = TRUE)
-    sapply(pkg, require, character.only = TRUE)
+needed_packages <- function(requiredpackageslist){
+    package_checking <- requiredpackageslist[!(requiredpackageslist %in% installed.packages()[, "Package"])]
+    if (length(package_checking)) 
+        install.packages(package_checking, dependencies = TRUE)
+    sapply(requiredpackageslist, require, character.only = TRUE)
 }
 
 # install and loading the required packages that are not aleady loaded
