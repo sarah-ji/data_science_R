@@ -5,8 +5,21 @@ output: html_document
 ---
   
 ```{r setup, include=FALSE}
-if (!"tidyverse" %in% rownames(installed.packages()))  
-  install.packages("tidyverse", repos="http://cran.rstudio.com/")
+#these will be the packages required to run this program. 
+required_packages = c("tidyverse", "nycflights13", "ggstance", "lvplot", "knitr", "ggbeeswarm", "ggsci")
+
+# this function will be checking first to see if the required packages are there or not then I'll install and load them at once.
+ipak <- function(pkg){
+    new.pkg <- pkg[!(pkg %in% installed.packages()[, "Package"])]
+    if (length(new.pkg)) 
+        install.packages(new.pkg, dependencies = TRUE)
+    sapply(pkg, require, character.only = TRUE)
+}
+
+# install and loading the required packages that are not aleady loaded
+ipak(required_packages)
+
+#hide my warnings and code for neatness
 knitr::opts_chunk$set(echo = FALSE)
 knitr::opts_chunk$set(warning = FALSE)
 ```
