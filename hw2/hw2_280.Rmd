@@ -1,22 +1,27 @@
 ---
-  title: "Biostat M280 Homework 2"
+title: "Biostat M280 Homework 2"
 subtitle: Due Feb 16 @ 11:59PM
 output: html_document
 ---
   
-  ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+```{r setup, include=FALSE}
+if (!"tidyverse" %in% rownames(installed.packages()))  
+  install.packages("tidyverse", repos="http://cran.rstudio.com/")
+knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(warning = FALSE)
 ```
 
 ```{r}
 library("tidyverse")
+library("nycflights13")
+library("ggstance")
 ```
 
 ## Q1
 
 Read [Chapter 7](http://r4ds.had.co.nz/exploratory-data-analysis.html) (Exploratory Data Analysis) of _R for Data Science_ and do exercises 7.3.4, 7.4.1, 7.5.1.1, 7.5.2.1, and 7.5.3.1.
 
-7.3.4 Exercises
+### 7.3.4 Exercises
 1. Explore the distribution of each of the x, y, and z variables in diamonds. What do you learn? Think about a diamond and how you might decide which dimension is the length, width, and depth.
 
 ```{r}
@@ -116,39 +121,86 @@ ggplot(data = diamonds, mapping = aes(x = carat)) +
 
 coord_cartesian simply zooms in on the area specified by the limits. The calculation of the histogram is unaffected.
 
+###7.4.1 Exercises
+1. What happens to missing values in a histogram? What happens to missing values in a bar chart? Why is there a difference?
+
+**Answer:** In a histogram, missing values are ignored, and only complete data is plotted. Conversely, in a bar chart, missing values are categorized as a separate category of values. 
+
+2. What does na.rm = TRUE do in mean() and sum()?
+
+```{r}
+mean(c(1, 2, 3, NA), na.rm = TRUE)
+```
+
+```{r}
+sum(c(1, 2, 3, NA), na.rm = TRUE)
+```
+
+**Answer:** na.rm = TRUE is an argument that can be specified within the mean() and sum() functions, to instruct the program to ignore missing values when computing the mean and sum.
+
+###7.5.1.1 Exercises
+1. Use what you’ve learned to improve the visualisation of the departure times of cancelled vs. non-cancelled flights.
+
+```{r}
+flights %>% 
+  mutate(cancelled = is.na(dep_time) | is.na(arr_time)) %>% 
+  ggplot() +
+  geom_boxplot(mapping = aes(x = cancelled, y = dep_time))
+```
+
+2. What variable in the diamonds dataset is most important for predicting the price of a diamond? How is that variable correlated with cut? Why does the combination of those two relationships lead to lower quality diamonds being more expensive?
+
+```{r}
+quickndirty = lm(price ~ ., diamonds)
+summary_quickndirty = summary(quickndirty)
+summary_quickndirty
+```
+
+**Answer:** We can do a quick and dirty check through doing a quick linear regression model to gain some sense of what predicts price best. It seems that carat and clarity are important. We will now use graphical methods to examine which covariate has the highest correlation with price.
+
+```{r}
+ggplot(data = diamonds, 
+       mapping = aes(x = price,
+                     colour = cut_number(carat, 10))) +
+  geom_freqpoly()
+```
+
+
+```{r}
+ggplot(diamonds) +
+  geom_point(aes(x = carat, y = price), color = "blue", alpha = 0.5)
+```
+
+**Answer** Volumn and weight are two variables that is most important for predicting the price. Since volumn is highly correlated with weight, they can be considered to be one variable.
+
+3. Install the ggstance package, and create a horizontal boxplot. How does this compare to using coord_flip()?
+
+```{r}
+ggplot(diamonds, aes(x = cut_number(price, 10), y = carat)) +
+  geom_boxplot() +
+  coord_flip() +
+  xlab("Price")
+```
+
+```{r}
+ggplot(diamonds) + geom_boxploth(aes(x = carat, y = cut_number(price, 10)))
+```
+
+**Answer** 
+
+4. One problem with boxplots is that they were developed in an era of much smaller datasets and tend to display a prohibitively large number of “outlying values”. One approach to remedy this problem is the letter value plot. Install the lvplot package, and try using geom_lv() to display the distribution of price vs cut. What do you learn? How do you interpret the plots?
+
 ```{r}
 
 ```
 
-
-## Q2 (optional)
-
-Read [Chapter 23](http://r4ds.had.co.nz/model-basics.html) (Model Basics) and [Chapter 24](http://r4ds.had.co.nz/model-building.html) (Model Building) of _R for Data Science_ and do exercises 24.2.3 and 24.3.5.
-
-1. In the plot of lcarat vs. lprice, there are some bright vertical strips. What do they represent?
-
-```{r}
-ggplot(diamonds2, aes(lcarat, lprice)) + 
-  geom_hex(bins = 50)
-```
-
-
-2. If log(price) = a_0 + a_1 * log(carat), what does that say about the relationship between price and carat?
+5. Compare and contrast geom_violin() with a facetted geom_histogram(), or a coloured geom_freqpoly(). What are the pros and cons of each method?
 
 ```{r}
 
 ```
 
-
-3. Extract the diamonds that have very high and very low residuals. Is there anything unusual about these diamonds? Are the particularly bad or good, or do you think these are pricing errors?
-
-```{r}
-
-```
-
-
-4. Does the final model, mod_diamonds2, do a good job of predicting diamond prices? Would you trust it to tell you how much to spend if you were buying a diamond?
-
+6. If you have a small dataset, it’s sometimes useful to use geom_jitter() to see the relationship between a continuous and categorical variable. The ggbeeswarm package provides a number of methods similar to geom_jitter(). List them and briefly describe what each one does.
 
 ```{r}
 
@@ -162,16 +214,16 @@ Redo HW1 Q2 using tidyverse.
 1. How many persons are in the data set (statisticians call this `n`)? How many SNPs are in the data set (statisticians call this `p`)?
 
 ```{r}
-snpfam = read.delim(file = "/home/m280-data/hw1/merge-geno.fam", sep = " ")
+snpfam = read.delim(file = "/home/m280-data/hw1/merge-geno.fam", sep = " ", header = FALSE)
 #number_of_people = dim(snpfam)[1]
 number_of_people = n_distinct(snpfam$V2)
 number_of_people
 ```
 
 ```{r}
-snpbim = read_tsv(file = "/home/m280-data/hw1/merge-geno.bim")
+snpbim = read_tsv(file = "/home/m280-data/hw1/merge-geno.bim", col_names = FALSE)
 #number_of_snps = dim(snpbim)[1]
-number_of_snps = n_distinct(snpbim$V2)
+number_of_snps = n_distinct(snpbim$X2)
 number_of_snps
 ```
 **Answer:** There are n = 959 people in the dataset.
@@ -183,7 +235,7 @@ number_of_snps
 #chromosomes = unique(snpbim$V1)
 #chromosomes
 chromosomes <- snpbim %>% 
-group_by(V1) %>% 
+group_by(X1) %>% 
 summarise(count = n())
 chromosomes
 #chromosome_counts = as.data.frame(table(snpbim$V1))
@@ -202,7 +254,7 @@ chromosomes
 #numberofsnps_MAP4
 
 numberofsnps_MAP4 <- snpbim %>% 
-filter(V1 == 3 & V4 >= 47892180 & snpbim$V4 <= 48130769) %>%
+filter(X1 == 3 & X4 >= 47892180 & snpbim$X4 <= 48130769) %>%
 summarise(count = n())
 numberofsnps_MAP4
 ```
@@ -218,7 +270,7 @@ with each field separated by a comma. Write a Linux shell command to convert `me
 ```{r}
 #snpdef_mendel = cbind(snpbim$V2, snpbim$V1, snpbim$V4)
 #snpdef_mendel = as.factor(snpdef_mendel)
-mendel_snp_def = snpbim %>% select(V2, V1, V4) %>% unite(format, sep =",")
+mendel_snp_def = snpbim %>% select(X2, X1, X4) %>% unite(format, sep =",")
 #mendel_snp_def = as.data.frame(mendel_snp_def)
 first_row = "    2.40 = FILE FORMAT VERSION NUMBER."
 second_row = "8348674  = NUMBER OF SNPS LISTED HERE."
@@ -248,8 +300,3 @@ snpfam2 %>% select(V1, V2, V3, V4, V5, V6) %>% unite(format, sep =",")
 head(snpfam2,20)
 ```
 
-
-
-## Q4 (optional)
-
-Redo HW1 Q3 on Hoffman2, except now we want to submit each `runSum.R` job to a different node in the cluster.
