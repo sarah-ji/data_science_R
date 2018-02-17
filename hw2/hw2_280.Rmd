@@ -107,7 +107,7 @@ ggplot(data = diamonds, mapping = aes(x = carat)) +
 ggplot(data = diamonds, mapping = aes(x = carat)) +
   geom_histogram(binwidth = 0.01, aes(colour = cut_number(carat, 10))) +
   coord_cartesian(xlim = c(0, 1)) +
-  labs(title = "Distribution of Price using coord_cartesian() to zoom in on carat range 0 - 1")
+  labs(title = "Distribution of Price using coord_cartesian() on range 0 - 1")
 ```
 
 **Answer:** Using coord_cartesian() simply visually zooms into the specified range of the data, but all of the data stays. Using xlim() or ylim() when zooming in on a histogram would cut the data in the specified range first, before plotting. If you leave binwidth unset, the program by default will spit out: `stat_bin() using bins = 30. Pick better value with binwidth`.
@@ -137,7 +137,7 @@ flights %>% mutate(cancelled = is.na(dep_time) | is.na(arr_time)) %>%
     ggplot(aes(sched_dep_time)) +
     geom_density() +
     facet_grid(~cancelled) + 
-    labs(title = "Departure Times for Cancelled (T) vs. Not Cancelled (F) Flights")
+    labs(title = "Departure Time Cancelled (T) vs. Not Cancelled (F) Flights")
 ```
 
 **Answer:** We subset only the cancelled flights by missing departure or arrival time, and notice from the distribution of cancelled flights that they are in general, later than the non-cancelled flights.
@@ -156,7 +156,8 @@ diamonds2 = diamonds %>%
   add_residuals(mod)
 
 ggplot(data = diamonds2) +
-  geom_point(mapping = aes(x = carat, y = resid), color = "purple", alpha = 0.01)
+  geom_point(mapping = aes(x = carat, y = resid),
+             color = "purple", alpha = 0.01)
 ```
 
 
@@ -275,9 +276,12 @@ flights %>%
   group_by(dest) %>% 
   filter(n() == 12) %>% 
   ungroup() %>% 
-  ggplot(aes(x = factor(month), y = reorder(dest, avg_dep_delay, FUN = mean), fill = avg_dep_delay)) +
+  ggplot(aes(x = factor(month),
+             y = reorder(dest, avg_dep_delay, FUN = mean),
+             fill = avg_dep_delay)) +
   geom_tile() +
-  labs(x = "Month", y = "Destination", fill = "Average Delay Time", title = "Complete + Re-ordered Destinations by Average Delay Time")
+  labs(x = "Month", y = "Destination", fill = "Average Delay Time",
+       title = "Complete + Re-ordered Destinations by Average Delay Time")
 ```
 
 
@@ -322,17 +326,19 @@ ggplot(data = diamonds,
 2. Visualise the distribution of carat, partitioned by price.
 
 ```{r}
-ggplot(diamonds) + geom_boxploth(aes(x = carat, y = cut_number(price, 10), colour = cut_number(x ,4)))
+ggplot(diamonds) + geom_boxploth(aes(x = carat, y = cut_number(price, 10),
+                                     colour = cut_number(x ,4)))
 ```
 
 3. How does the price distribution of very large diamonds compare to small diamonds. Is it as you expect, or does it surprise you?
 
 ```{r}
 #taking a look at the different distributions for the categorized groups
-diamonds %>% mutate(size_categories = cut(diamonds$carat, breaks = c(0, c1, c4, c6))) %>%
-    ggplot(aes(price)) +
-    geom_density(aes(color = size_categories)) +
-    ggsci::scale_color_d3(labels = c("bottom 10%", "middle 10% - 90%" , "top 10%"))
+diamonds %>% mutate(size_categories = cut(diamonds$carat,
+                                          breaks = c(0, c1, c4, c6))) %>%
+  ggplot(aes(price)) +
+  geom_density(aes(color = size_categories)) +
+  ggsci::scale_color_d3(labels = c("bottom 10%", "middle 10% - 90%", "top 10%"))
 ```
 
 **Answer:** The distribution of very large diamonds is more variable than for small diamonds. Notice price seems to be more variable for larger carat sizes, and less variable for diamonds of smaller carat sizes. From the huge peak at the lower values of price, we see that the bottom 10% of carat sizes are are all clustered around the same price. The middle 10-90% seem much more variable than the bottom 10%, but still nonetheless the distribution is still unimodal. The top 10% of carat sizes are quite varible in price, we see some overlap between the middle and top percentile groups, but no overlap between the bottom and the top percentile groups. 
@@ -341,9 +347,9 @@ diamonds %>% mutate(size_categories = cut(diamonds$carat, breaks = c(0, c1, c4, 
 
 ```{r}
 ggplot(diamonds, aes(carat, price, color = clarity)) +
-    geom_point() +
-    stat_smooth(method = "lm") +
-    facet_grid(~cut)
+  geom_point() +
+  stat_smooth(method = "lm") +
+  facet_grid(~cut)
 ```
 
 **Answer:** Earlier we noticed high multicollinearity, so it is difficult to caputure the true relationship between each of these covariates and price. We also saw that the differences in distributions in price for carat groups, and made the connection that some diamonds although large, were not the best of quality. We considered an additional covariate, clarity, to try to see whether or not there are other forces driving price besides cut and carat. From the stratified plot above, we see that clarity is also positively associated with price. 
@@ -355,14 +361,16 @@ Redo HW1 Q2 using tidyverse.
 1. How many persons are in the data set (statisticians call this `n`)? How many SNPs are in the data set (statisticians call this `p`)?
 
 ```{r}
-snpfam = read.delim(file = "/home/m280-data/hw1/merge-geno.fam", sep = " ", header = FALSE)
+snpfam = read.delim(file = "/home/m280-data/hw1/merge-geno.fam",
+                    sep = " ", header = FALSE)
 #number_of_people = dim(snpfam)[1]
 number_of_people = n_distinct(snpfam$V2)
 number_of_people
 ```
 
 ```{r}
-snpbim = read_tsv(file = "/home/m280-data/hw1/merge-geno.bim", col_names = FALSE)
+snpbim = read_tsv(file = "/home/m280-data/hw1/merge-geno.bim",
+                  col_names = FALSE)
 #number_of_snps = dim(snpbim)[1]
 number_of_snps = n_distinct(snpbim$X2)
 number_of_snps
@@ -437,7 +445,8 @@ snpfam2 = replace_na(snpfam,
 # if v3 or v4 0 then make them missing
 snpfam2$V5 = str_replace_all(snpfam2$V5, c("1" = "M", "2" = "F"))
 # make sex  12 
-snpfam_final = snpfam2 %>% select(V1, V2, V3, V4, V5, V6) %>% unite(format, sep =",")
+snpfam_final = snpfam2 %>% select(V1, V2, V3, V4, V5, V6) %>%
+  unite(format, sep =",")
 kable(head(snpfam_final, 20))
 ```
 
