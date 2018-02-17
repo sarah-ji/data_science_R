@@ -71,7 +71,7 @@ ggplot(filter(diamonds), aes(x = price)) +
   labs(title = "Distribution of Price with Binwidth = 50")
 ```
 
-**Answer:** There are no diamonds with a price of $1,500.
+**Answer:** In general, the distribution is as expected and decreasing. What was unexpected was that there are no diamonds with a price of $1,500. We can alter the binwidth and compare the two histograms. Notice that the histogram with the binwidth of 50 makes it look like there are many more observations with smaller carat size than there actually is! Using a smaller binwidth of 1 shows more detail in the histogram, and better relates the true distribution.
 
 3. How many diamonds are 0.99 carat? How many are 1 carat? What do you think is the cause of the difference?
 
@@ -93,12 +93,7 @@ colnames(answer3) = "N"
 kable(answer3)
 ```
 
-There are a 23 diamonds with 0.99 carat size, and 1558 diamonds with 1 carat size. That is, there are more than 67 times as many 1 carat diamonds as 0.99 carat diamonds. I think the cause of the difference is that there are spikes at 0.25 carat intervals. It makes intuitive sense that the diamond producers are "rounding up" their diamond cuts, as there is a significant increase in price from a 0.99 carat size diamond to a 1.0 carat size diamond. 
-
-```{r}
-ggplot(data = diamonds, mapping = aes(x = carat)) +
-  geom_histogram(binwidth = 0.01, aes(colour = cut_number(carat, 10)))
-```
+**Answer:** There are a 23 diamonds with 0.99 carat size, and 1558 diamonds with 1 carat size. That is, there are more than 67 times as many 1 carat diamonds as 0.99 carat diamonds. I think the cause of the difference is that there are spikes at 0.25 carat intervals. It makes intuitive sense that the diamond producers are "rounding up" their diamond cuts, as there is a significant increase in price from a 0.99 carat size diamond to a 1.0 carat size diamond. 
 
 ```{r}
 ggplot(data = diamonds, mapping = aes(x = carat)) +
@@ -111,10 +106,11 @@ ggplot(data = diamonds, mapping = aes(x = carat)) +
 ```{r}
 ggplot(data = diamonds, mapping = aes(x = carat)) +
   geom_histogram(binwidth = 0.01, aes(colour = cut_number(carat, 10))) +
-  coord_cartesian(xlim = c(0,1))
+  coord_cartesian(xlim = c(0, 1)) +
+  labs(title = "Distribution of Price using coord_cartesian() to zoom in on carat range 0 - 1")
 ```
 
-**Answer:** Using coord_cartesian() vs xlim() or ylim() when zooming in on a histogram, What happens if you leave binwidth unset? What happens if you try and zoom so only half a bar shows
+**Answer:** Using coord_cartesian() simply visually zooms into the specified range of the data, but all of the data stays. Using xlim() or ylim() when zooming in on a histogram would cut the data in the specified range first, before plotting. If you leave binwidth unset, the program by default will spit out: `stat_bin() using bins = 30. Pick better value with binwidth`.
 
 ###7.4.1 Exercises
 1. What happens to missing values in a histogram? What happens to missing values in a bar chart? Why is there a difference?
@@ -123,11 +119,11 @@ ggplot(data = diamonds, mapping = aes(x = carat)) +
 
 2. What does na.rm = TRUE do in mean() and sum()?
 
-```{r}
+```{r, echo = TRUE}
 mean(c(1, 2, 3, NA), na.rm = TRUE)
 ```
 
-```{r}
+```{r, echo = TRUE}
 sum(c(1, 2, 3, NA), na.rm = TRUE)
 ```
 
@@ -137,50 +133,21 @@ sum(c(1, 2, 3, NA), na.rm = TRUE)
 1. Use what you’ve learned to improve the visualisation of the departure times of cancelled vs. non-cancelled flights.
 
 ```{r}
-flights %>% 
-  mutate(cancelled = is.na(dep_time) | is.na(arr_time)) %>% 
-  ggplot() +
-  geom_boxplot(mapping = aes(x = cancelled, y = dep_time))
+flights %>% mutate(cancelled = is.na(dep_time) | is.na(arr_time)) %>%
+    ggplot(aes(sched_dep_time)) +
+    geom_density() +
+    facet_grid(~cancelled) + 
+    labs(title = "Departure Times for Cancelled (T) vs. Not Cancelled (F) Flights")
 ```
+
+**Answer:** We subset only the cancelled flights by missing departure or arrival time, and notice from the distribution of cancelled flights that they are in general, later than the non-cancelled flights.
 
 2. What variable in the diamonds dataset is most important for predicting the price of a diamond? How is that variable correlated with cut? Why does the combination of those two relationships lead to lower quality diamonds being more expensive?
-
-```{r}
-ggplot(data = diamonds, 
-       mapping = aes(x = price,
-                     colour = cut_number(carat, 10))) +
-  geom_freqpoly()
-```
-
-
-```{r}
-#seeing as how carat size obviously makes the most sense in price prediction,
-#I want to check the distribution of carat size 
-quantile(diamonds$carat)
-
-#Let's categorize the top 10% of carat sizes as the jump from the 75th percentile to the max is huge!
-c1 <- quantile(diamonds$carat, probs = .1) # bottom 10%
-c4 <- quantile(diamonds$carat, .9) # top 10%
-c6 <- quantile(diamonds$carat, 1)
-```
-
-
-```{r}
-#taking a look at the different distributions for the categorized groups
-diamonds %>% mutate(size_categories = cut(diamonds$carat, breaks = c(0, c1, c4, c6))) %>%
-    ggplot(aes(price)) +
-    geom_density(aes(color = size_categories)) +
-    ggsci::scale_color_d3(labels = c("bottom 10%", "middle 10% - 90%" , "top 10%"))
-```
-
-**Answer:**: We examine price by carat size quantile values, to explore the variation in price for different carat size categories. Notice price seems to be more variable for larger carat sizes, and less variable for diamonds of smaller carat sizes. From the huge peak at the lower values of price, we see that the bottom 10% of carat sizes are are all clustered around the same price. The middle 10-90% seem much more variable than the bottom 10%, but still nonetheless the distribution is still unimodal. The top 10% of carat sizes are quite varible in price, we see some overlap between the middle and top percentile groups, but no overlap between the bottom and the top percentile groups. 
 
 ```{r}
 ggplot(diamonds) +
   geom_point(aes(x = carat, y = price), color = "blue", alpha = 0.01)
 ```
-
-**Answer:** We can do a quick and dirty check through doing a quick linear regression model to gain some sense of what predicts price best. As it seems that almost all the covariates are important in predicting price, we use graphical methods to examine which covariate has the highest correlation with price. We noticed that the covariates for length, width and depth are also highly correlated with carat, so it is difficult to caputure the true relationship between each of these covariates and price. To get a sense of how much price deviates from a single covariate, we can plot the residuals. We see below how price deviates from just carat. The residuals are bell-shaped indicating that the most common carat size is most variable, which makes sense from an economic perspective.
 
 ```{r}
 mod = lm(log(price) ~ log(carat), data = diamonds)
@@ -190,15 +157,21 @@ diamonds2 = diamonds %>%
 
 ggplot(data = diamonds2) +
   geom_point(mapping = aes(x = carat, y = resid), color = "purple", alpha = 0.01)
-
 ```
+
 
 ```{r}
-ggplot(diamonds, aes(carat, price, color = clarity)) +
-    geom_point() +
-    stat_smooth(method = "lm") +
-    facet_grid(~cut)
+#seeing as how carat size obviously makes the most sense in price prediction,
+#I want to check the distribution of carat size 
+#quantile(diamonds$carat)
+
+#Let's categorize the top 10% of carat sizes as the jump from the 75th percentile to the max is huge!
+c1 <- quantile(diamonds$carat, probs = .1) # bottom 10%
+c4 <- quantile(diamonds$carat, .9) # top 10%
+c6 <- quantile(diamonds$carat, 1)
 ```
+
+**Answer:** As it seems that almost all the covariates are important in predicting price, we use graphical methods to examine which covariate has the highest correlation with price. We noticed that the covariates for length, width and depth are also highly correlated with carat, so it is difficult to caputure the true relationship between each of these covariates and price. To get a sense of how much price deviates from a single covariate, we can plot the residuals. We see below how price deviates from just carat. The residuals are bell-shaped indicating that the most common carat size is most variable, which makes sense from an economic perspective. From examining the relationship between carat and cut, we see that there are some very large diamonds with a poor quality cut. For such cases, lower quality diamonds are more expensive, as they are still quite heavy in carat weight. These results make intuitive sense, as some men and women live by the motto of "bigger is better", and diamonds are a symbol of everlasting marriage. Haha.
 
 
 3. Install the ggstance package, and create a horizontal boxplot. How does this compare to using coord_flip()?
@@ -224,6 +197,8 @@ ggplot(diamonds, aes(x = cut, y = price, alpha = 0.0005)) +
   geom_lv(aes(colour = cut_number(carat, 10)))
 ```
 
+**Answer:** The letter value plots remedy the problem of overdisplaying too many outlier values in larger datasets. From the letter value plot, we get a better understanding of the distribution of the data than we do from a regular box plot, as its shape is reflective of its distribution. 
+
 5. Compare and contrast geom_violin() with a facetted geom_histogram(), or a coloured geom_freqpoly(). What are the pros and cons of each method?
 
 ```{r, warning= FALSE}
@@ -239,18 +214,20 @@ ggplot(diamonds) +
 ```
 
 ```{r}
-ggplot(diamonds) +
-  geom_violin(aes(x = cut, y = price)) + coord_flip()
+ggplot(diamonds, aes(cut, carat)) +
+    geom_violin()
 ```
 
+**Answer:** There are pros and cons of each of the graphs, depending on the data that is being modeled. One of the major cons of using a histogram is that it is difficult to make comparisons across categories, since by default it plots the counts on the y-axis rather than relative proportions. As a personal preference, the violin plots seem best for graphical comparison.
 
 6. If you have a small dataset, it’s sometimes useful to use geom_jitter() to see the relationship between a continuous and categorical variable. The ggbeeswarm package provides a number of methods similar to geom_jitter(). List them and briefly describe what each one does.
 
 ```{r}
-
+ggplot(diamonds, aes(cut, carat)) +
+    geom_quasirandom()
 ```
 
-**Answer:** geom_jitter() is a function that adds random noise to the X and Y position of each data points to avoid overplotting.
+**Answer:** The ggbeeswarm package provides a number of methods similar to geom_jitter(), which is a function that adds random noise to the X and Y position of each data points to avoid overplotting. We also have geom_beeswarm() which also jitters the points from overlapping, using a slightly different algorithm. The geom_quasirandom() in ggbeeswarm is also useful in that it jitters the datapoints in a violin plot.
 
 ###7.5.2.1 Exercises
 1. How could you rescale the count dataset above to more clearly show the distribution of cut within colour, or colour within cut?
@@ -351,18 +328,25 @@ ggplot(diamonds) + geom_boxploth(aes(x = carat, y = cut_number(price, 10), colou
 3. How does the price distribution of very large diamonds compare to small diamonds. Is it as you expect, or does it surprise you?
 
 ```{r}
-
+#taking a look at the different distributions for the categorized groups
+diamonds %>% mutate(size_categories = cut(diamonds$carat, breaks = c(0, c1, c4, c6))) %>%
+    ggplot(aes(price)) +
+    geom_density(aes(color = size_categories)) +
+    ggsci::scale_color_d3(labels = c("bottom 10%", "middle 10% - 90%" , "top 10%"))
 ```
 
-**Answer:** The distribution of very large diamonds is more variable than for small diamonds.
+**Answer:** The distribution of very large diamonds is more variable than for small diamonds. Notice price seems to be more variable for larger carat sizes, and less variable for diamonds of smaller carat sizes. From the huge peak at the lower values of price, we see that the bottom 10% of carat sizes are are all clustered around the same price. The middle 10-90% seem much more variable than the bottom 10%, but still nonetheless the distribution is still unimodal. The top 10% of carat sizes are quite varible in price, we see some overlap between the middle and top percentile groups, but no overlap between the bottom and the top percentile groups. 
 
 4. Combine two of the techniques you’ve learned to visualise the combined distribution of cut, carat, and price.
 
 ```{r}
-ggplot(diamonds) + geom_boxploth(aes(x = carat, y = cut_number(price, 10), colour = cut_number(x ,4)))
+ggplot(diamonds, aes(carat, price, color = clarity)) +
+    geom_point() +
+    stat_smooth(method = "lm") +
+    facet_grid(~cut)
 ```
 
-5. Two dimensional plots reveal outliers that are not visible in one dimensional plots. For example, some points in the plot below have an unusual combination of x and y values, which makes the points outliers even though their x and y values appear normal when examined separately.
+**Answer:** Earlier we noticed high multicollinearity, so it is difficult to caputure the true relationship between each of these covariates and price. We also saw that the differences in distributions in price for carat groups, and made the connection that some diamonds although large, were not the best of quality. We considered an additional covariate, clarity, to try to see whether or not there are other forces driving price besides cut and carat. From the stratified plot above, we see that clarity is also positively associated with price. 
 
 ## Q3
 
