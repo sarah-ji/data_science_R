@@ -53,7 +53,7 @@ diamonds %>%
   facet_grid(variable ~ .)
 ```
 
-**Answer:** From the distributions of each of the x, y, and z variables in diamonds, we see that x, y and z are all bi-modal and right skewed. As expected, there are higher counts of smaller diamonds than larger diamonds than for larger ones. 
+**Answer:** From the distributions of each of the x, y, and z variables in diamonds, we see that x, y and z are all bi-modal and right skewed. As expected, there are higher counts of smaller diamonds than for larger ones. 
 
 While I am not sure how to determine which of the dimensions x, y and z are, but from what we have read it seems that the variable x is length, variable y is width and variable z is the depth. This makes some intuitive sense, as most diamonds are not as deep as they are wide or long. Picturing a diamond on an engagement ring, most diamonds lay flatter to the finger than the width/length of the diamond. 
 
