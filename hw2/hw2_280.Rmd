@@ -6,7 +6,7 @@ output: html_document
   
 ```{r setup, include=FALSE}
 #these will be the packages required to run this program. 
-required_packages = c("tidyverse", "nycflights13", "ggstance", "lvplot", "knitr", "ggbeeswarm", "ggsci")
+required_packages = c("tidyverse", "nycflights13", "ggstance", "lvplot", "knitr", "ggbeeswarm", "ggsci", "modelr")
 
 # this function will be checking first to see if the required packages are there or not then I'll install and load them at once.
 needed_packages <- function(requiredpackageslist){
@@ -32,6 +32,7 @@ library("lvplot")
 library("knitr")
 library("ggbeeswarm")
 library("ggsci")
+library("modelr")
 ```
 
 ## Q1
@@ -42,58 +43,35 @@ Read [Chapter 7](http://r4ds.had.co.nz/exploratory-data-analysis.html) (Explorat
 1. Explore the distribution of each of the x, y, and z variables in diamonds. What do you learn? Think about a diamond and how you might decide which dimension is the length, width, and depth.
 
 ```{r}
-#histogram of the x variable
-ggplot(data = diamonds) +
-  geom_bar(mapping = aes(x = x))
-```
-
-```{r}
-#histogram of the y variable
-ggplot(data = diamonds) +
-  coord_cartesian(xlim = c(0, 10)) +
-  geom_bar(mapping = aes(x = y))
-```
-
-```{r}
-#histogram of the z variable
-ggplot(data = diamonds) +
-  coord_cartesian(xlim = c(0, 10)) +
-  geom_bar(mapping = aes(x = z))
-```
-
-```{r}
 diamonds %>%
   mutate(id = row_number()) %>%
   select(x, y, z, id) %>%
   gather(variable, value, -id)  %>%
   ggplot(aes(x = value)) +
-  geom_density() +
+  geom_histogram(bins = 500) +
   geom_rug() +
   facet_grid(variable ~ .)
 ```
 
-From the distributions of each of the x, y, and z variables in diamonds, we see that they are bi-modal and right skewed. As expected, there are higher counts of smaller diamonds than larger diamonds, and there are two outliers in y and z. 
+**Answer:** From the distributions of each of the x, y, and z variables in diamonds, we see that x, y and z are all bi-modal and right skewed. As expected, there are higher counts of smaller diamonds than larger diamonds than for larger ones. 
 
-I am not sure how to determine which of the dimensions x, y and z are, but from what we have read it seems that the variable x is length, variable y is width and variable z is the depth. This makes some intuitive sense, as most diamonds are not as deep as they are wide or long. Picturing a diamond on an engagement ring, most diamonds lay flatter to the finger than the width/length of the diamond. 
+While I am not sure how to determine which of the dimensions x, y and z are, but from what we have read it seems that the variable x is length, variable y is width and variable z is the depth. This makes some intuitive sense, as most diamonds are not as deep as they are wide or long. Picturing a diamond on an engagement ring, most diamonds lay flatter to the finger than the width/length of the diamond. 
 
 2. Explore the distribution of price. Do you discover anything unusual or surprising? (Hint: Carefully think about the binwidth and make sure you try a wide range of values.)
 
 ```{r}
 ggplot(filter(diamonds), aes(x = price)) +
-  geom_histogram(binwidth = 50, center = 0)
-```
-
-There are no diamonds with a price of $1,500.
-
-```{r}
-ggplot(filter(diamonds, price < 1600), aes(x = price, fill = carat)) +
-  geom_histogram(binwidth = 10, center = 0)
+  geom_histogram(binwidth = 1, center = 0) + 
+  labs(title = "Distribution of Price with Binwidth = 1")
 ```
 
 ```{r}
-ggplot(filter(diamonds, price > 4000), aes(x = price, fill = carat)) +
-  geom_histogram(binwidth = 10, center = 0)
+ggplot(filter(diamonds), aes(x = price)) +
+  geom_histogram(binwidth = 50, center = 0) + 
+  labs(title = "Distribution of Price with Binwidth = 50")
 ```
+
+**Answer:** There are no diamonds with a price of $1,500.
 
 3. How many diamonds are 0.99 carat? How many are 1 carat? What do you think is the cause of the difference?
 
@@ -112,28 +90,31 @@ answer3 = c(n_99caret, n_1caret)
 answer3 = as.data.frame(answer3)
 rownames(answer3) = c("0.99 carat count", "1 carat count")
 colnames(answer3) = "N"
-answer3
+kable(answer3)
 ```
 
 There are a 23 diamonds with 0.99 carat size, and 1558 diamonds with 1 carat size. That is, there are more than 67 times as many 1 carat diamonds as 0.99 carat diamonds. I think the cause of the difference is that there are spikes at 0.25 carat intervals. It makes intuitive sense that the diamond producers are "rounding up" their diamond cuts, as there is a significant increase in price from a 0.99 carat size diamond to a 1.0 carat size diamond. 
-
-
-```{r}
-diamonds %>%
-  filter(carat >= 0.9, carat <= 1.1) %>%
-  count(carat) %>%
-  print(n = 20)
-```
-
 
 ```{r}
 ggplot(data = diamonds, mapping = aes(x = carat)) +
   geom_histogram(binwidth = 0.01, aes(colour = cut_number(carat, 10)))
 ```
 
+```{r}
+ggplot(data = diamonds, mapping = aes(x = carat)) +
+  geom_histogram(binwidth = 0.01, aes(colour = cut_width(carat, 0.25)))
+```
+
+
 4. Compare and contrast coord_cartesian() vs xlim() or ylim() when zooming in on a histogram. What happens if you leave binwidth unset? What happens if you try and zoom so only half a bar shows?
 
-coord_cartesian simply zooms in on the area specified by the limits. The calculation of the histogram is unaffected.
+```{r}
+ggplot(data = diamonds, mapping = aes(x = carat)) +
+  geom_histogram(binwidth = 0.01, aes(colour = cut_number(carat, 10))) +
+  coord_cartesian(xlim = c(0,1))
+```
+
+**Answer:** Using coord_cartesian() vs xlim() or ylim() when zooming in on a histogram, What happens if you leave binwidth unset? What happens if you try and zoom so only half a bar shows
 
 ###7.4.1 Exercises
 1. What happens to missing values in a histogram? What happens to missing values in a bar chart? Why is there a difference?
@@ -165,14 +146,6 @@ flights %>%
 2. What variable in the diamonds dataset is most important for predicting the price of a diamond? How is that variable correlated with cut? Why does the combination of those two relationships lead to lower quality diamonds being more expensive?
 
 ```{r}
-quickndirty = lm(price ~ ., diamonds)
-summary_quickndirty = summary(quickndirty)
-kable(summary_quickndirty$coefficients, digits = 6)
-```
-
-**Answer:** We can do a quick and dirty check through doing a quick linear regression model to gain some sense of what predicts price best. It seems that carat and clarity are important. We will now use graphical methods to examine which covariate has the highest correlation with price.
-
-```{r}
 ggplot(data = diamonds, 
        mapping = aes(x = price,
                      colour = cut_number(carat, 10))) +
@@ -200,18 +173,16 @@ diamonds %>% mutate(size_categories = cut(diamonds$carat, breaks = c(0, c1, c4, 
     ggsci::scale_color_d3(labels = c("bottom 10%", "middle 10% - 90%" , "top 10%"))
 ```
 
-**Answer**: We examine price by carat size quantile values, to explore the variation in price for different carat size categories. Notice price seems to be more variable for larger carat sizes, and less variable for diamonds of smaller carat sizes. From the huge peak at the lower values of price, we see that the bottom 10% of carat sizes are are all clustered around the same price. The middle 10-90% seem much more variable than the bottom 10%, but still nonetheless the distribution is still unimodal. The top 10% of carat sizes are quite varible in price, we see some overlap between the middle and top percentile groups, but no overlap between the bottom and the top percentile groups. 
+**Answer:**: We examine price by carat size quantile values, to explore the variation in price for different carat size categories. Notice price seems to be more variable for larger carat sizes, and less variable for diamonds of smaller carat sizes. From the huge peak at the lower values of price, we see that the bottom 10% of carat sizes are are all clustered around the same price. The middle 10-90% seem much more variable than the bottom 10%, but still nonetheless the distribution is still unimodal. The top 10% of carat sizes are quite varible in price, we see some overlap between the middle and top percentile groups, but no overlap between the bottom and the top percentile groups. 
 
 ```{r}
 ggplot(diamonds) +
   geom_point(aes(x = carat, y = price), color = "blue", alpha = 0.01)
 ```
 
-**Answer** Volume and weight are two variables that is most important for predicting the price. Since volumn is highly correlated with weight, they can be considered to be one variable. It's hard to capture the ture relationship between cut and price, because cut and carat, and carat and price, are tightly related. We can get a sense of how the price deviates from just carat by computing the reidulas.
+**Answer:** We can do a quick and dirty check through doing a quick linear regression model to gain some sense of what predicts price best. As it seems that almost all the covariates are important in predicting price, we use graphical methods to examine which covariate has the highest correlation with price. We noticed that the covariates for length, width and depth are also highly correlated with carat, so it is difficult to caputure the true relationship between each of these covariates and price. To get a sense of how much price deviates from a single covariate, we can plot the residuals. We see below how price deviates from just carat. The residuals are bell-shaped indicating that the most common carat size is most variable, which makes sense from an economic perspective.
 
 ```{r}
-library(modelr)
-library(dplyr)
 mod = lm(log(price) ~ log(carat), data = diamonds)
 
 diamonds2 = diamonds %>% 
@@ -221,8 +192,6 @@ ggplot(data = diamonds2) +
   geom_point(mapping = aes(x = carat, y = resid), color = "purple", alpha = 0.01)
 
 ```
-
-Residuals are bell-shaped indicating that the most common carat size is most variable, which makes sense.
 
 ```{r}
 ggplot(diamonds, aes(carat, price, color = clarity)) +
@@ -236,16 +205,17 @@ ggplot(diamonds, aes(carat, price, color = clarity)) +
 
 ```{r}
 ggplot(diamonds, aes(x = cut_number(price, 10), y = carat)) +
-  geom_boxplot(aes(colour = cut_number(x,4))) +
+  geom_boxplot() +
   coord_flip() +
-  xlab("Price")
+  labs(title = "Horizontal Boxplot with coord_flip()", x = "Price")
 ```
 
 ```{r}
-ggplot(diamonds) + geom_boxploth(aes(x = carat, y = cut_number(price, 10), colour = cut_number(x,4)))
+ggplot(diamonds) + geom_boxploth(aes(x = carat, y = cut_number(price, 10))) +
+  labs(title = "Horizontal Boxplot ggstance", y = "Price")
 ```
 
-**Answer** There appears to be no difference in using either or. I think it's quite useful to have the coor_flip() feature, actually.
+**Answer:** There appears to be no difference from the plots using either or. When labeling the plots I noticed that the x and y are switched for the horizontal boxplot using coord_flip(), as it should be. I think it's quite useful to have the coor_flip() feature, actually.
 
 4. One problem with boxplots is that they were developed in an era of much smaller datasets and tend to display a prohibitively large number of “outlying values”. One approach to remedy this problem is the letter value plot. Install the lvplot package, and try using geom_lv() to display the distribution of price vs cut. What do you learn? How do you interpret the plots?
 
@@ -280,7 +250,7 @@ ggplot(diamonds) +
 
 ```
 
-This is similar to geom_violin, in that it attempts show the density via width and similar to jitter in that overalpping points are dodged. The alternate function is geom_beeswarm() which just uses a slightly different positioning algorithim to re-located overlapping points
+**Answer:** geom_jitter() is a function that adds random noise to the X and Y position of each data points to avoid overplotting.
 
 ###7.5.2.1 Exercises
 1. How could you rescale the count dataset above to more clearly show the distribution of cut within colour, or colour within cut?
@@ -307,7 +277,7 @@ diamonds %>%
 par(mfrow=c(1,1))
 ```
 
-**Answer** In the plot above, we use the proportions rather than the counts themselves to better capture the distribution of the cut within color above.
+**Answer:** In the plot above, we use the proportions rather than the counts themselves to better capture the distribution of the cut within color above.
 
 2. Use geom_tile() together with dplyr to explore how average flight delays vary by destination and month of year. What makes the plot difficult to read? How could you improve it?
 
@@ -319,7 +289,7 @@ flights %>%
   geom_tile()
 ```
 
-**Answer** From the plot using geom_tile() together with dplyr to explore how average flight delays vary by destination and month of year, we see that it is difficult to read for a number of reasons. Many of the flight destinations have missing values across many months, and currently the data is not in any meaningful order. It could be improved by re-ordering the destinations based on average delay time, and removing missing values.
+**Answer:** From the plot using geom_tile() together with dplyr to explore how average flight delays vary by destination and month of year, we see that it is difficult to read for a number of reasons. Many of the flight destinations have missing values across many months, and currently the data is not in any meaningful order. It could be improved by re-ordering the destinations based on average delay time, and removing missing values.
 
 ```{r}
 flights %>% 
@@ -358,19 +328,24 @@ diamonds %>%
 par(mfrow=c(1,1))
 ```
 
-**Answer** It slightly better to use aes(x = color, y = cut) rather than aes(x = cut, y = color) in the example above, strictly because of visual purposes. There are 7 color categories: "D", "E", "F", "G", "H", "I", "J" vs. 5 cut categories: "Fair", "Good", "Very Good", "Premium", "Ideal". Not only is there more color categories than cut categories resulting in rectangular pixels rather than square shaped pixels, but the cut categories are also ordinal while the colors have no categorical ordering.
+**Answer:** It slightly better to use aes(x = color, y = cut) rather than aes(x = cut, y = color) in the example above, strictly because of visual purposes. There are 7 color categories: "D", "E", "F", "G", "H", "I", "J" vs. 5 cut categories: "Fair", "Good", "Very Good", "Premium", "Ideal". Not only is there more color categories than cut categories resulting in rectangular pixels rather than square shaped pixels, but the cut categories are also ordinal while the colors have no categorical ordering.
 
 ##7.5.3.1 Exercises
 1. Instead of summarising the conditional distribution with a boxplot, you could use a frequency polygon. What do you need to consider when using cut_width() vs cut_number()? How does that impact a visualisation of the 2d distribution of carat and price?
 
 ```{r}
-
+ggplot(data = diamonds, 
+       mapping = aes(x = price,
+                     colour = cut_number(carat, 10))) +
+  geom_freqpoly()
 ```
+
+**Answer:** When using cut_width() vs cut_number(), one needs to consider the skewness of their data. As the distribution of the diamonds data is heavily right skewed, using cut_width() does not capture enough observations in the higher carat bins. Instead, in the plot above, we categorize carat into 10 bins with the same number of observations using cut_number() to ensure enough data in the higher carat bins.
 
 2. Visualise the distribution of carat, partitioned by price.
 
 ```{r}
-
+ggplot(diamonds) + geom_boxploth(aes(x = carat, y = cut_number(price, 10), colour = cut_number(x ,4)))
 ```
 
 3. How does the price distribution of very large diamonds compare to small diamonds. Is it as you expect, or does it surprise you?
@@ -379,10 +354,12 @@ par(mfrow=c(1,1))
 
 ```
 
+**Answer:** The distribution of very large diamonds is more variable than for small diamonds.
+
 4. Combine two of the techniques you’ve learned to visualise the combined distribution of cut, carat, and price.
 
 ```{r}
-
+ggplot(diamonds) + geom_boxploth(aes(x = carat, y = cut_number(price, 10), colour = cut_number(x ,4)))
 ```
 
 5. Two dimensional plots reveal outliers that are not visible in one dimensional plots. For example, some points in the plot below have an unusual combination of x and y values, which makes the points outliers even though their x and y values appear normal when examined separately.
