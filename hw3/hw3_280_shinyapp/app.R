@@ -32,7 +32,7 @@ ui <- fluidPage(
                       pageWithSidebar(
                         headerPanel('Who earned the most?'),
                         sidebarPanel(
-                          selectInput('yr', 'Year',
+                          selectInput('yr1', 'Year',
                                       sort(levels(as.factor(df$Year)),
                                            decreasing = T)),
                           numericInput('obs1', 'Number of observations (n) to view:', value = 10,
@@ -43,14 +43,14 @@ ui <- fluidPage(
                         ))),
              tabPanel("Question 4",
                       pageWithSidebar(
-                        headerPanel('Which departments earned the most?'),
+                        headerPanel('Which departments earned the most by Median or Mode?'),
                         sidebarPanel(
-                          selectInput('yr', 'Year',
+                          selectInput('yr2', 'Year',
                                       sort(levels(as.factor(df$Year)),
                                            decreasing = T)),
-                          numericInput('obs2', 'Number of observations (n) to view:', 5,
+                          numericInput(inputId ='obs2', label = 'Top n earning departments to view:', value = 5,
                                        min = 1, max = nrow(df)),
-                          selectInput('meth', 'Choose Method:', c("Mean", "Median"))
+                          selectInput('meth', 'Choose Method:', choices = c("Median", "Mean"))
                         ),
                         mainPanel(
                           tableOutput('depmost')
@@ -92,10 +92,25 @@ head(sumstat)
    head((df %>% filter(Year == as.numeric(input$yr)) %>% arrange(desc(Total_Payments)) %>% select(Department_Title, Total_Payments, Base_Pay, Overtime_Pay, Other_Pay)), n = input$obs1)
  })
  
-# output$depmost <- renderTable({if(input$meth == "Mean"){
- # head((df %>% filter(Year == as.numeric(input$yr)) %>% group_by(Department_Title) %>% mutate(meanTP = mean(Total_Payments))) %>% distinct(meanTP, .keep_all = TRUE) %>% arrange(desc(meanTP))} 
-  # else if(input$meth == "Median"){}
- #})
+ output$depmost = renderTable({
+   if (input$meth == "Mean"){
+     head((df %>% filter(Year == as.numeric(input$yr2)) %>%
+             group_by(`Department` = Department_Title) %>%
+             summarise(`Mean Total Payments` = mean(Total_Payments),
+                       `Mean Base Payments` = mean(Base_Pay),
+                       `Mean Overtime Payments` = mean(Overtime_Pay),
+                       `Mean Other Payments` = mean(Other_Pay)) %>%
+             arrange(desc(`Mean Total Payments`))), input$obs2)
+   } else if (input$meth == "Median"){
+     head((df %>% filter(year == as.numeric(input$yr2)) %>%
+             group_by(`Department Title` = Department_Title) %>%
+             summarise(`Median Total Payments` = median(Total_Payments),
+                       `Median Base Payments` = median(Base_Pay),
+                       `Median Overtime Payments` = median(Overtime_Pay),
+                       `Median Other Payments` = median(Other_Pay)) %>%
+             arrange(desc(`Median Total Payments`))), input$obs2)
+   }
+ })
  
   }
    
