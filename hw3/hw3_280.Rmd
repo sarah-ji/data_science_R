@@ -24,6 +24,7 @@ The `/home/m280-data/la_payroll/LA_City_Employee_Payroll.csv` file on teaching s
 
 1. For efficiency of the Shiny app, you should first pre-process, pare down, tidy, and save the data, e.g., as a compressed RDS file, to be used in the app.
 
+**Answer**:
 ```{r}
 LA_payroll = read_csv("/home/m280-data/la_payroll/LA_City_Employee_Payroll.csv")
 
@@ -39,20 +40,33 @@ LA_payroll$Overtime_Pay = parse_number(LA_payroll$Overtime_Pay)
 LA_payroll$Other_Pay = parse_number(LA_payroll$Other_Pay)
 LA_payroll$Department_Title = parse_factor(LA_payroll$Department_Title, levels = unique(LA_payroll$Department_Title))
 
+#automatically compressed
 saveRDS(LA_payroll, "LA_payroll.rds")
 ```
 
 0. **Total payroll by LA City**. Visualize the total LA City payroll of each year, with breakdown into base pay, overtime pay, and other pay.
 
+**Answer**:
+
 0. **Who earned most?** Visualize the payroll information (total payment with breakdown into base pay, overtime pay, and other pay, Department, Job Title) of the top $n$ highest paid LA City employees in a specific year. User specifies $n$ (default 10) and year (default 2017).
+
+**Answer**:
 
 0. **Which departments earn most?** Visualize the mean or median payroll, with breakdown into base pay, overtime pay, and other pay, of top $n$ earning departments. User specifies $n$ (default 5), year (default 2017), and method (mean or median, default median).
 
+**Answer**:
+
 0. **Which departments cost most?** Visualize the total payroll, with breakdown into base pay, overtime pay, and other pay, of top $n$ expensive departments. User specifies $n$ (default 5) and year (default 2017).
+
+**Answer**:
 
 0. Visualize any other information you are interested in.
 
+**Answer**:
+
 0. Publish your Shiny app to <https://www.shinyapps.io> and share the link.
+
+**Answer**:
 
 ## Q2 LA City Parking War
 
@@ -118,13 +132,17 @@ head(tickets_per_month, 12)
 tickets_per_monthday = sqldf("SELECT strftime('%d',datetime(Issue_DateTime, 'unixepoch')) as MonthDay from latix", dbname = sqlname) %>% group_by(MonthDay) %>% summarize(n = n()) %>% mutate(proportion = n / sum(n)) %>% arrange(desc(proportion))
 
 head(tickets_per_monthday, 31)
-
 ```
 
 0. Which car makes received most citations?
 
 **Answer**:
 ```{r}
+#which make are you most likely to get a ticket?
+tickets_per_make = collect(la_sql) %>% 
+group_by(Make) %>% summarize(n = n()) %>% mutate(proportion = n / sum(n)) %>% arrange(desc(proportion))
+
+head(tickets_per_make)
 
 ```
 
@@ -132,21 +150,35 @@ head(tickets_per_monthday, 31)
 
 **Answer**:
 ```{r}
+#how many different colors of cars were ticketed?
+number_of_colors = collect(la_sql) %>% summarise(n = n_distinct(Color))
+number_of_colors$n
 
+#which color attracted most tickets?
+tickets_per_color = collect(la_sql) %>% 
+group_by(Color) %>% summarize(n = n()) %>% mutate(proportion = n / sum(n)) %>% arrange(desc(proportion))
+
+head(tickets_per_color)
 ```
 
 0. What are the most common ticket types?
 
 **Answer**:
 ```{r}
+tickets_per_violationtype = collect(la_sql) %>% 
+group_by(Violation_Description) %>% summarize(n = n()) %>% mutate(proportion = n / sum(n)) %>% arrange(desc(proportion))
 
+head(tickets_per_violationtype)
 ```
 
 0. How much money was collected on parking tickets in 2015 and 2016?
 
 **Answer**:
 ```{r}
+tickets_per_violationtype = collect(la_sql) %>% 
+group_by(Violation_Description) %>% summarize(n = n()) %>% mutate(proportion = n / sum(n)) %>% arrange(desc(proportion))
 
+head(tickets_per_violationtype)
 ```
 
 0. Visualize any other information you are interested in.
