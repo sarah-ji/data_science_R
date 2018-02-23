@@ -175,10 +175,11 @@ head(tickets_per_violationtype)
 
 **Answer**:
 ```{r}
-tickets_per_violationtype = collect(la_sql) %>% 
-group_by(Violation_Description) %>% summarize(n = n()) %>% mutate(proportion = n / sum(n)) %>% arrange(desc(proportion))
+money_collected_156 = collect(la_sql) %>% mutate(converted_date = as.POSIXct(Issue_DateTime, origin = "1970-01-01 UTC"),
+Year = year(converted_date)) %>% filter(Year == 2015 | Year == 2016) %>% group_by(Year) %>%
+  summarize(`Total Collected in Dollars` = sum(Fine_amount, na.rm = T))
 
-head(tickets_per_violationtype)
+money_collected_156
 ```
 
 0. Visualize any other information you are interested in.
