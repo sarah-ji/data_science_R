@@ -11,6 +11,11 @@ library(data.table)
 library(tidyr)
 library(dplyr)
 library(readr)
+library(DBI)
+library(RSQLite)
+library(sqldf)
+library(dbplyr)
+library(lubridate)
 ```
 
 ## Q1 LA City Employee Payroll
@@ -55,14 +60,98 @@ The SQLite database `/home/m280-data/la_parking/LA_Parking_Citations.sqlite` on 
 
 1. How many tickets are in this data set? Which time period do these tickets span? Which years have most data?
 
+
+**Answer**:
+```{r}
+sqlname = "/home/m280-data/la_parking/LA_Parking_Citations.sqlite"
+# con = dbConnect(RSQLite::SQLite(), sqlname)
+connection = dbConnect(RSQLite::SQLite(), sqlname, ":memory:")
+
+la_sql = dplyr::tbl(connection, "latix")
+
+number_of_tickets = collect(la_sql) %>% summarise(n = n_distinct(Ticket_number))
+number_of_tickets$n
+
+colnames(la_sql)
+
+month = sqldf("SELECT strftime('%m',datetime(Issue_DateTime, 'unixepoch')) as Month from latix", dbname = sqlname)
+
+day = sqldf("SELECT strftime('%d',datetime(Issue_DateTime, 'unixepoch')) as Day from latix", dbname = sqlname)
+
+# Time Period Spanned (4/27/2010 to 12/30/2017)
+sqldf("SELECT min(strftime('%Y-%m-%d', datetime(Issue_DateTime, 'unixepoch'))) as Year from latix", dbname = sqlname)
+
+sqldf("SELECT max(strftime('%Y-%m-%d', datetime(Issue_DateTime, 'unixepoch'))) as Year from latix", dbname = sqlname)
+
+#which year has the most tickets?
+tickets_per_year = sqldf("SELECT strftime('%Y',datetime(Issue_DateTime, 'unixepoch')) as Year from latix", dbname = sqlname) %>% group_by(Year) %>% summarize(n = n())
+
+```
+
 0. When (which hour, weekday, month day, and month) are you most likely to get a ticket and when are you least likely to get a ticket?
+
+**Answer**:
+
+```{r}
+#which hour are you most likely to get a ticket?
+tickets_per_hour = collect(la_sql) %>% 
+mutate(converted_datetime = as.POSIXct(Issue_DateTime, origin = "1970-01-01 UTC"),
+Hour = hour(converted_datetime)) %>% 
+group_by(Hour) %>% summarize(n = n()) %>% mutate(proportion = n / sum(n)) %>% arrange(desc(proportion))
+
+head(tickets_per_hour, n = 24)
+
+#which weekday are you most likely to get a ticket?
+tickets_per_weekday = collect(la_sql) %>% 
+mutate(converted_date = as.POSIXct(Issue_DateTime, origin = "1970-01-01 UTC"),
+Weekday = weekdays(converted_date)) %>% 
+group_by(Weekday) %>% summarize(n = n()) %>% mutate(proportion = n / sum(n)) %>% arrange(desc(proportion))
+
+head(tickets_per_weekday, n = 7)
+
+#which month are you most likely to get a ticket?
+tickets_per_month = sqldf("SELECT strftime('%m',datetime(Issue_DateTime, 'unixepoch')) as Month from latix", dbname = sqlname) %>% group_by(Month) %>% summarize(n = n()) %>% mutate(proportion = n / sum(n)) %>% arrange(desc(proportion))
+
+head(tickets_per_month, 12)
+
+#which month day are you most likely to get a ticket?
+tickets_per_monthday = sqldf("SELECT strftime('%d',datetime(Issue_DateTime, 'unixepoch')) as MonthDay from latix", dbname = sqlname) %>% group_by(MonthDay) %>% summarize(n = n()) %>% mutate(proportion = n / sum(n)) %>% arrange(desc(proportion))
+
+head(tickets_per_monthday, 31)
+
+```
 
 0. Which car makes received most citations?
 
+**Answer**:
+```{r}
+
+```
+
 0. How many different colors of cars were ticketed? Which color attracted most tickets?
+
+**Answer**:
+```{r}
+
+```
 
 0. What are the most common ticket types?
 
+**Answer**:
+```{r}
+
+```
+
 0. How much money was collected on parking tickets in 2015 and 2016?
 
+**Answer**:
+```{r}
+
+```
+
 0. Visualize any other information you are interested in.
+
+**Answer**:
+```{r}
+
+```
