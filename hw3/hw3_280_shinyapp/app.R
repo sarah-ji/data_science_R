@@ -79,8 +79,12 @@ ui <- fluidPage(
                                       sort(levels(as.factor(
                                         df$Year)),
                                         decreasing = T)),
-                          numericInput('obs4', 'Top n people exceeding expectations:',
-                                       5, min = 1,
+                          selectInput(inputId = 'dept', label = 'Select Department:',
+                                      selected = 'Fire',
+                                     sort(levels(as.factor(df$Department_Title)),
+                                          decreasing = T)),
+                          numericInput(inputId = 'obs4', label = 'Top n happy people earning more than expected:',
+                                       value = 5, min = 1,
                                        max = nrow(df))),
                         mainPanel(
                           tableOutput('aboveprojected'))
@@ -129,11 +133,12 @@ df_depcostmost <- reactive({
   print(test4)
 })
 
-df_projected <- reactive({
-  test5 <- df[df$Year %in% input$yr5, df$Department_Title == input$dept] %>% group_by(`Department Title` = Department_Title) %>%
-    mutate(`Exceeding Total Pay` = sum(Total_Payments) - sum(Projected_Annual_Salary)) %>%
-    arrange(desc(`Exceeding Total Pay`))
-  print(test5)
+df_exceed <- reactive({
+  test5 <- df[df$Year %in% input$yr5, ] %>% filter(Department_Title == input$dept) %>%
+                mutate(`Amount Exceeding Projected Salary` = Total_Payments - Projected_Annual_Salary) %>%
+                arrange(desc(`Amount Exceeding Projected Salary`))
+
+  print(test5)  
 })
 
 output$summary <- renderTable({
@@ -175,7 +180,7 @@ head(sumstat)
  })
  
  output$aboveprojected = renderTable({
-   head(df_projected(), n = input$obs4)
+   head(df_exceed(), n = input$obs4)
  })
 
   }
