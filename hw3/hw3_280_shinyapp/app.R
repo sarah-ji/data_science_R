@@ -48,7 +48,7 @@ ui <- fluidPage(
                         ))),
              tabPanel("Question 1.4",
                       pageWithSidebar(
-                        headerPanel('Which departments earned the most by Median or Mode?'),
+                        headerPanel('Which departments earned the most by Median or Mean?'),
                         sidebarPanel(
                           selectInput('yr3', 'Select Year:',
                                       sort(levels(as.factor(df$Year)),
@@ -90,7 +90,19 @@ ui <- fluidPage(
                                        max = nrow(df))),
                         mainPanel(
                           tableOutput('aboveprojected'))
-             ))
+             )),
+             tabPanel("Question 1.6",
+                      pageWithSidebar(
+                        headerPanel('Which departments have the Highest Average Benefit Cost?'),
+                        sidebarPanel(
+                          selectInput('yr6', 'Select Year:',
+                                      sort(levels(as.factor(df$Year)),
+                                           decreasing = T)),
+                          numericInput(inputId ='obs5', label = 'Top n departments to view:', value = 5,
+                                       min = 1, max = nrow(df))),
+                        mainPanel(
+                          tableOutput('depbenefit'), plotOutput("plot5"))
+                        ))
 ))
 
 server <- function(input,output){
@@ -140,6 +152,13 @@ df_exceeded <- reactive({
   print(test5)  
 })
 
+df_depbenefit <- reactive({
+  test6 <- df[df$Year %in% input$yr6, ] %>% filter(Average_Benefit_Cost > 0) %>% group_by(`Department Title` = Department_Title) %>%
+    summarise(`Average Benefit Cost` = mean(Average_Benefit_Cost, na.rm = T)) %>% arrange(desc(`Average Benefit Cost`))
+  print(test6)
+  
+})
+
 output$summary <- renderTable({
 sumstat =  kable(summary(df[df$Year %in% input$yr1, 3:7]))
 head(sumstat)
@@ -182,6 +201,18 @@ head(sumstat)
    head(df_exceeded(), n = input$obs4)
  })
 
+ output$depbenefit = renderTable({
+   head(df_depbenefit(), n = input$obs5)
+ })
+ 
+ output$plot5 <-renderPlot({
+   hist(as.numeric(unlist(df_depbenefit())),
+        breaks = 50,
+        col = "lightblue", border = 'white',
+        main = input$yr6,
+        xlab = "Average Benefit Cost")
+ })
+ 
   }
    
 
