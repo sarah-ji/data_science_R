@@ -2,6 +2,7 @@ library(shiny)
 library(ggplot2)
 library(knitr)
 library(dplyr)
+library(tidyr)
 
 df <- readRDS("/home/sarahh.jii/biostat-m280-2018-winter/hw3/LA_payroll.rds") 
 
@@ -12,6 +13,7 @@ df2 = df %>% mutate(id = row_number()) %>%
 df3 = left_join(df1, df2, by = "id")
 names(df3) = c("id", "y", "Year","variable","Dollars")
 
+df_exceed = df %>% filter(Total_Payments > Projected_Annual_Salary)
 
 ui <- fluidPage(
   titlePanel(title=h4("Payroll", align="center")),
@@ -81,10 +83,10 @@ ui <- fluidPage(
                                         decreasing = T)),
                           selectInput(inputId = 'dept', label = 'Select Department:',
                                       selected = 'Fire',
-                                     sort(levels(as.factor(df$Department_Title)),
+                                     sort(levels(as.factor(df_exceed$Department_Title)),
                                           decreasing = T)),
                           numericInput(inputId = 'obs4', label = 'Top n happy people earning more than expected:',
-                                       value = 5, min = 1,
+                                       value = 3, min = 1,
                                        max = nrow(df))),
                         mainPanel(
                           tableOutput('aboveprojected'))
@@ -133,11 +135,8 @@ df_depcostmost <- reactive({
   print(test4)
 })
 
-df_exceed <- reactive({
-  test5 <- df[df$Year %in% input$yr5, ] %>% filter(Department_Title == input$dept) %>%
-                mutate(`Amount Exceeding Projected Salary` = Total_Payments - Projected_Annual_Salary) %>%
-                arrange(desc(`Amount Exceeding Projected Salary`))
-
+df_exceeded <- reactive({
+  test5 <- df_exceed[df_exceed$Year %in% input$yr5, ] %>% filter(Department_Title == input$dept) %>% mutate(`Amount Exceeding Projected Salary` = Total_Payments - Projected_Annual_Salary) %>% arrange(desc(`Amount Exceeding Projected Salary`))
   print(test5)  
 })
 
@@ -180,7 +179,7 @@ head(sumstat)
  })
  
  output$aboveprojected = renderTable({
-   head(df_exceed(), n = input$obs4)
+   head(df_exceeded(), n = input$obs4)
  })
 
   }
