@@ -3,8 +3,9 @@ library(ggplot2)
 library(knitr)
 library(dplyr)
 library(tidyr)
-
-df <- readRDS("/home/sarahh.jii/biostat-m280-2018-winter/hw3/LA_payroll.rds") 
+library(rsconnect)
+#rsconnect::deployApp('~/biostat-m280-2018-winter/hw3/hw3_280_shinyapp')
+df <- readRDS("LA_payroll.rds") 
 
 df1 = df %>% mutate(id = row_number()) %>%
   select(names(df)[c(1)], id) %>% gather(variable, value, -id)
@@ -75,17 +76,13 @@ ui <- fluidPage(
                       )),
              tabPanel("Question 1.6",
                       pageWithSidebar(
-                        headerPanel('Which individuals are paid more than their projected annual salary?'),
+                        headerPanel('Which departments are paid more than their projected annual salary?'),
                         sidebarPanel(
                           selectInput('yr5', 'Select Year:',
                                       sort(levels(as.factor(
                                         df$Year)),
                                         decreasing = T)),
-                          selectInput(inputId = 'dept', label = 'Select Department:',
-                                      selected = 'Fire',
-                                     sort(levels(as.factor(df_exceed$Department_Title)),
-                                          decreasing = T)),
-                          numericInput(inputId = 'obs4', label = 'Top n happy people earning more than expected:',
+                          numericInput(inputId = 'obs4', label = 'Top n departments earning more than expected:',
                                        value = 3, min = 1,
                                        max = nrow(df))),
                         mainPanel(
@@ -148,7 +145,7 @@ df_depcostmost <- reactive({
 })
 
 df_exceeded <- reactive({
-  test5 <- df_exceed[df_exceed$Year %in% input$yr5, ] %>% filter(Department_Title == input$dept) %>% mutate(`Amount Exceeding Projected Salary` = Total_Payments - Projected_Annual_Salary) %>% arrange(desc(`Amount Exceeding Projected Salary`))
+  test5 <- df_exceed[df_exceed$Year %in% input$yr5, ] %>% group_by(`Department Title` = Department_Title) %>% mutate(`Amount Exceeding Projected Salary` = Total_Payments - Projected_Annual_Salary) %>% arrange(desc(`Amount Exceeding Projected Salary`))
   print(test5)  
 })
 
@@ -173,17 +170,18 @@ head(sumstat)
     geom_bar(stat = "identity") +
     labs(x = "Year", y = "Total Pay in Millions $", fill = "Type", title = "Payroll by Year and Type") }, height = 400, width = 600)
  
- output$plot2 <- renderPlot({
-   ggplot(data_plot2() ,aes(x= Dollars)) + geom_histogram(colour = "blue") + geom_rug() +
-     facet_grid(variable ~ .) + labs(title = "Distribution of Payroll by Type and Selected Year")}, height = 400, width = 600)
  
- output$plot3 <-renderPlot({
+ output$plot2 <-renderPlot({
    hist(as.numeric(unlist(df[df$Year == input$yr1, input$type_pay])),
         col = "lightblue", border = 'white',
         main = input$yr1,
-        xlab = "Year",
-        ylab = "Pay")
+        xlab = "Pay",
+        ylab = "Count")
  })
+ 
+ output$plot3 <- renderPlot({
+   ggplot(data_plot2() ,aes(x= Dollars)) + geom_histogram(colour = "blue") + geom_rug() +
+     facet_grid(variable ~ .) + labs(title = "Distribution of Payroll by Type and Selected Year")}, height = 400, width = 600)
  
  output$tablemost <- renderTable({
    head(df_ui_year_most() , n = input$obs1)
