@@ -9,6 +9,20 @@ output: html_document
 knitr::opts_chunk$set(echo = FALSE)
 knitr::opts_chunk$set(evaluate = TRUE)
 knitr::opts_chunk$set(warning = FALSE)
+#these will be the packages required to run this program. 
+required_packages = c("data.table", "tidyr", "dplyr", "readr", "DBI", "RSQLite", "sqldf", "dbplyr", "lubridate")
+
+# this function will be checking first to see if the required packages are there or not then I'll install and load them at once.
+needed_packages <- function(requiredpackageslist){
+    package_checking <- requiredpackageslist[!(requiredpackageslist %in% installed.packages()[, "Package"])]
+    if (length(package_checking)) 
+        install.packages(package_checking, dependencies = TRUE)
+    sapply(requiredpackageslist, require, character.only = TRUE)
+}
+
+# install and loading the required packages that are not aleady loaded
+needed_packages(required_packages)
+
 library(data.table)
 library(tidyr)
 library(dplyr)
@@ -46,7 +60,7 @@ LA_payroll$Average_Benefit_Cost = parse_number(LA_payroll$Average_Benefit_Cost)
 LA_payroll$Employment_Type = parse_factor(LA_payroll$Employment_Type, levels = unique(LA_payroll$Employment_Type))
 
 #automatically compressed
-saveRDS(LA_payroll, "LA_payroll.rds")
+#saveRDS(LA_payroll, "LA_payroll.rds")
 ```
 
 **Answer**: For efficiency of the Shiny app, I have pre-processed and saved the data as a compressed RDS file to be used in the app. The compressed RDS file is saved in my directory as, LA_payroll.rds.
@@ -124,19 +138,19 @@ print(tickets_per_year)
 ```{r}
 #which hour are you most likely to get a ticket?
 tickets_per_hour = collected_LA %>% 
-mutate(converted_datetime = as.POSIXct(Issue_DateTime, origin = "1970-01-01 UTC"),
+mutate(converted_datetime = as.POSIXct(Issue_DateTime, origin = "1970-01-01 UTC", tz = "PST"),
 Hour = hour(converted_datetime)) %>% 
 group_by(Hour) %>% summarize(n = n()) %>% mutate(proportion = n / sum(n)) %>% arrange(desc(proportion))
 
 head(tickets_per_hour, n = 25)
 ```
 
-**Answer**: You are most likely to get a ticket at 3.
+**Answer**: You are most likely to get a ticket at 12pm.
 
 ```{r}
 #which weekday are you most likely to get a ticket?
 tickets_per_weekday = collected_LA %>% 
-mutate(converted_date = as.POSIXct(Issue_DateTime, origin = "1970-01-01 UTC"),
+mutate(converted_date = as.POSIXct(Issue_DateTime, origin = "1970-01-01 UTC", tz = "PST"),
 Weekday = weekdays(converted_date)) %>% 
 group_by(Weekday) %>% summarize(n = n()) %>% mutate(proportion = n / sum(n)) %>% arrange(desc(proportion))
 
@@ -212,7 +226,7 @@ head(tickets_per_violationtype, n = 10, main = "Top 10 Ticket Types")
 6. How much money was collected on parking tickets in 2015 and 2016?
 
 ```{r}
-money_collected_156 = collected_LA %>% mutate(converted_date = as.POSIXct(Issue_DateTime, origin = "1970-01-01 UTC"),
+money_collected_156 = collected_LA %>% mutate(converted_date = as.POSIXct(Issue_DateTime, origin = "1970-01-01 UTC", tz = "PST"),
 Year = year(converted_date)) %>% filter(Year == 2015 | Year == 2016) %>% group_by(Year) %>%
   summarize(`Total Collected in Dollars` = sum(Fine_amount, na.rm = T))
 
