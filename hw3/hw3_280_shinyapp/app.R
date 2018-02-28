@@ -5,6 +5,7 @@ library(dplyr)
 library(tidyr)
 library(rsconnect)
 #rsconnect::deployApp('~/biostat-m280-2018-winter/hw3/hw3_280_shinyapp')
+
 df <- readRDS("LA_payroll.rds") 
 
 df1 = df %>% mutate(id = row_number()) %>%
@@ -145,7 +146,7 @@ df_depcostmost <- reactive({
 })
 
 df_exceeded <- reactive({
-  test5 <- df_exceed[df_exceed$Year %in% input$yr5, ] %>% group_by(`Department Title` = Department_Title) %>% mutate(`Amount Exceeding Projected Salary` = Total_Payments - Projected_Annual_Salary) %>% arrange(desc(`Amount Exceeding Projected Salary`))
+  test5 <- df_exceed[df_exceed$Year %in% input$yr5, ] %>% group_by(Department_Title) %>% mutate(`Amount Exceeding Projected Salary` = Total_Payments - Projected_Annual_Salary) %>% arrange(desc(`Amount Exceeding Projected Salary`)) %>% select(Department_Title, Projected_Annual_Salary, Total_Payments, Base_Pay, Overtime_Pay, Other_Pay, `Amount Exceeding Projected Salary`)
   print(test5)  
 })
 
