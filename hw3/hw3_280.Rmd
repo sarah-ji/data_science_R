@@ -222,7 +222,7 @@ topticketedmakeswithothers = LAtickets %>% select(Make, Body_Style, Fine_amount)
 
 top10ticketmakeswitho = collect(head(topticketedmakeswithothers, 10))
 
-top10ticketmakeswitho %>% ggplot(mapping = aes(x = n)) +
+top10ticketmakeswitho %>% ggplot(mapping = aes(x = Fine_amount)) +
   geom_histogram(binwidth = 1, aes(colour = Make)) +
   labs(title = "Fine Amounts For the Top 10 Car Makes", x = "Number of Tickets")
 
