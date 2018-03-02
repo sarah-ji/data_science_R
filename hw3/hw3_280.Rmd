@@ -32,6 +32,8 @@ library(RSQLite)
 library(sqldf)
 library(dbplyr)
 library(lubridate)
+library(ggstance)
+library(tidyverse)
 ```
 
 ## Q1 LA City Employee Payroll
@@ -44,9 +46,9 @@ The `/home/m280-data/la_payroll/LA_City_Employee_Payroll.csv` file on teaching s
 LA_payroll = read_csv("/home/m280-data/la_payroll/LA_City_Employee_Payroll.csv")
 
 LA_payroll = LA_payroll %>% 
-select(Year, `Department Title`, `Job Title`, `Projected Annual Salary`, `Total Payments`, `Base Pay`, `Overtime Pay`, `Other Pay (Payroll Explorer)`, `Average Health Cost`, `Hourly or Event Rate`, `Average Benefit Cost`, `Employment Type`)
+select(Year, `Department Title`, `Job Class Title`, `Projected Annual Salary`, `Total Payments`, `Base Pay`, `Overtime Pay`, `Other Pay (Payroll Explorer)`, `Average Health Cost`, `Hourly or Event Rate`, `Average Benefit Cost`, `Employment Type`, `Benefits Plan`)
 
-names(LA_payroll) = c("Year", "Department_Title", "Job_Title", "Projected_Annual_Salary", "Total_Payments", "Base_Pay", "Overtime_Pay", "Other_Pay", "Average_Healthcare_Cost", "Hourly_Rate", "Average_Benefit_Cost", "Employment_Type")
+names(LA_payroll) = c("Year", "Department_Title", "Job_Title", "Projected_Annual_Salary", "Total_Payments", "Base_Pay", "Overtime_Pay", "Other_Pay", "Average_Healthcare_Cost", "Hourly_Rate", "Average_Benefit_Cost", "Employment_Type", "Benefits_Plan")
 
 LA_payroll$Projected_Annual_Salary = parse_number(LA_payroll$Projected_Annual_Salary)
 LA_payroll$Total_Payments = parse_number(LA_payroll$Total_Payments)
@@ -59,9 +61,10 @@ LA_payroll$Hourly_Rate = parse_number(LA_payroll$Hourly_Rate)
 LA_payroll$Average_Benefit_Cost = parse_number(LA_payroll$Average_Benefit_Cost)
 LA_payroll$Employment_Type = parse_factor(LA_payroll$Employment_Type, levels = unique(LA_payroll$Employment_Type))
 LA_payroll$Job_Title = parse_factor(LA_payroll$Job_Title, levels = unique(LA_payroll$Job_Title))
+LA_payroll$Benefits_Plan = parse_factor(LA_payroll$Benefits_Plan, levels = unique(LA_payroll$Benefits_Plan))
 
 #automatically compressed
-#saveRDS(LA_payroll, "LA_payroll.rds")
+saveRDS(LA_payroll, "LA_payroll.rds")
 ```
 
 **Answer**: For efficiency of the Shiny app, I have pre-processed and saved the data as a compressed RDS file to be used in the app. The compressed RDS file is saved in my directory as, LA_payroll.rds.
@@ -72,19 +75,20 @@ LA_payroll$Job_Title = parse_factor(LA_payroll$Job_Title, levels = unique(LA_pay
 
 3. **Who earned most?** Visualize the payroll information (total payment with breakdown into base pay, overtime pay, and other pay, Department, Job Title) of the top $n$ highest paid LA City employees in a specific year. User specifies $n$ (default 10) and year (default 2017).
 
-**Answer**: In tab 1.3 of the shiny app, I have visualized the total LA City payroll by each year, with breakdown into base pay, overtime pay, other pay, Department title and Job Title of the top 10 highest paid LA city employees in a specified year, by default 2017.
+**Answer**: In tab 1.3 of the shiny app, I have visualized the total LA City payroll by each year, with breakdown into base pay, overtime pay, other pay, Department title and Job Title of the top 10 highest paid LA city employees in a specified year, by default 2017. It looks like in 2013 LAPD earned the most, and in years 2014-2017 Harbor/Harbor Port of LA employees earned the most.
 
 4. **Which departments earn most?** Visualize the mean or median payroll, with breakdown into base pay, overtime pay, and other pay, of top $n$ earning departments. User specifies $n$ (default 5), year (default 2017), and method (mean or median, default median).
 
-**Answer**: In tab 1.3 of the shiny app, I visualize the mean or median payroll with breakdown into median base pay, median overtime pay, and median other pay, of top 5 earning departments in 2017, by default.  
+**Answer**: In tab 1.4 of the shiny app, I visualize the mean or median payroll with breakdown into median base pay, median overtime pay, and median other pay, of top 5 earning departments in 2017, by default.
+In the years 2013-2016, the Fire Department earned the most both by median and mean. In the year 2017, the Public Accountability department earned the most by both median and mean. 
 
 5. **Which departments cost most?** Visualize the total payroll, with breakdown into base pay, overtime pay, and other pay, of top $n$ expensive departments. User specifies $n$ (default 5) and year (default 2017).
 
-**Answer**: 
+**Answer**: In tab 1.5 of the shiny app, I visualize the total payroll, with breakdown into base pay, overtime pay, and other pay, of most costly departments. The Police Department LAPD is the most costly department in years 2013 - 2017. 
 
 6. Visualize any other information you are interested in.
 
-**Answer**:
+**Answer**: In tab 1.6 of the shiny app, I visualize the top departments who are paid more than their projected annual salary. In the year 2013, the LAPD exceeds their projected annual salary the most. In the years 2014 - 2017, the Fire Department exceeds their projected annual salary the most. 
 
 7. Publish your Shiny app to <https://www.shinyapps.io> and share the link.
 
@@ -97,9 +101,9 @@ The SQLite database `/home/m280-data/la_parking/LA_Parking_Citations.sqlite` on 
 1. How many tickets are in this data set? Which time period do these tickets span? Which years have most data?
 
 ```{r}
-sqlname = "/home/m280-data/la_parking/LA_Parking_Citations.sqlite"
-# con = dbConnect(RSQLite::SQLite(), sqlname)
-connection = dbConnect(RSQLite::SQLite(), sqlname, ":memory:")
+SQLdbname = "/home/m280-data/la_parking/LA_Parking_Citations.sqlite"
+# con = dbConnect(RSQLite::SQLite(), SQLdbname)
+connection = dbConnect(RSQLite::SQLite(), SQLdbname, ":memory:")
 
 LAtickets = dplyr::tbl(connection, "latix")
 collected_LA = collect(LAtickets)
@@ -111,14 +115,14 @@ number_of_tickets$n
 **Answer**: There are 4,044,488 tickets in this data set. 
 
 ```{r}
-month = sqldf("SELECT strftime('%m',datetime(Issue_DateTime, 'unixepoch')) as Month from latix", dbname = sqlname)
+month = sqldf("SELECT strftime('%m',datetime(Issue_DateTime, 'unixepoch')) as Month from latix", dbname = SQLdbname)
 
-day = sqldf("SELECT strftime('%d',datetime(Issue_DateTime, 'unixepoch')) as Day from latix", dbname = sqlname)
+day = sqldf("SELECT strftime('%d',datetime(Issue_DateTime, 'unixepoch')) as Day from latix", dbname = SQLdbname)
 
 # Time Period Spanned (4/27/2010 to 12/30/2017)
-r1 = sqldf("SELECT min(strftime('%Y-%m-%d', datetime(Issue_DateTime, 'unixepoch'))) as Start from latix", dbname = sqlname)
+r1 = sqldf("SELECT min(strftime('%Y-%m-%d', datetime(Issue_DateTime, 'unixepoch'))) as Start from latix", dbname = SQLdbname)
 
-r2 = sqldf("SELECT max(strftime('%Y-%m-%d', datetime(Issue_DateTime, 'unixepoch'))) as End from latix", dbname = sqlname)
+r2 = sqldf("SELECT max(strftime('%Y-%m-%d', datetime(Issue_DateTime, 'unixepoch'))) as End from latix", dbname = SQLdbname)
 
 timespan = cbind(r1, r2)
 timespan
@@ -128,7 +132,7 @@ timespan
 
 ```{r}
 #which year has the most tickets?
-tickets_per_year = sqldf("SELECT strftime('%Y',datetime(Issue_DateTime, 'unixepoch')) as Year from latix", dbname = sqlname) %>% group_by(Year) %>% summarize(n = n())
+tickets_per_year = sqldf("SELECT strftime('%Y',datetime(Issue_DateTime, 'unixepoch')) as Year from latix", dbname = SQLdbname) %>% group_by(Year) %>% summarize(n = n())
 print(tickets_per_year)
 ```
 
@@ -162,7 +166,7 @@ head(tickets_per_weekday, n = 7)
 
 ```{r}
 #which month are you most likely to get a ticket?
-tickets_per_month = sqldf("SELECT strftime('%m',datetime(Issue_DateTime, 'unixepoch')) as Month from latix", dbname = sqlname) %>% group_by(Month) %>% summarize(n = n()) %>% mutate(proportion = n / sum(n)) %>% arrange(desc(proportion))
+tickets_per_month = sqldf("SELECT strftime('%m',datetime(Issue_DateTime, 'unixepoch')) as Month from latix", dbname = SQLdbname) %>% group_by(Month) %>% summarize(n = n()) %>% mutate(proportion = n / sum(n)) %>% arrange(desc(proportion))
 
 head(tickets_per_month, 12)
 ```
@@ -171,7 +175,7 @@ head(tickets_per_month, 12)
 
 ```{r}
 #which month day are you most likely to get a ticket?
-tickets_per_monthday = sqldf("SELECT strftime('%d',datetime(Issue_DateTime, 'unixepoch')) as MonthDay from latix", dbname = sqlname) %>% group_by(MonthDay) %>% summarize(n = n()) %>% mutate(proportion = n / sum(n)) %>% arrange(desc(proportion))
+tickets_per_monthday = sqldf("SELECT strftime('%d',datetime(Issue_DateTime, 'unixepoch')) as MonthDay from latix", dbname = SQLdbname) %>% group_by(MonthDay) %>% summarize(n = n()) %>% mutate(proportion = n / sum(n)) %>% arrange(desc(proportion))
 
 head(tickets_per_monthday, 31)
 ```
@@ -238,21 +242,23 @@ money_collected_156
 
 7. Visualize any other information you are interested in.
 
-**Answer**: Below, I visualize 
+**Answer**: Below, I visualize the number of tickets per car make, and the distribution of Ticket Fine amount by Car Body style. 
 
 ```{r}
-
 tickets_per_make = collected_LA %>% 
 group_by(Make) %>% summarize(n = n()) %>% mutate(proportion = n / sum(n)) %>% arrange(desc(proportion))
 
-ggplot(data = tickets_per_make, mapping = aes(x = n)) +
-       geom_histogram(binwidth = 1, aes(colour = Make))
+tickets_per_make %>%
+  ggplot(aes(x = n)) +
+  geom_histogram(bins = 50) +
+  geom_rug() +
+  facet_grid(Make ~ .)
 
 #which make are you most likely to get a ticket?
 tickets_per_make = collected_LA %>% 
 group_by(Make) %>% mutate(n = n()) %>% arrange(desc(n))
 
-library(ggstance)
-ggplot(tickets_per_make) + geom_boxploth(aes(x = Body_Style, y = cut_number(Fine_amount, 2), colour = Make))
+
+ggplot(collected_LA) + geom_boxploth(aes(x = Body_Style, y = cut_number(Fine_amount, 2), colour = Make))
 
 ```
