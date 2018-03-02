@@ -101,38 +101,21 @@ The SQLite database `/home/m280-data/la_parking/LA_Parking_Citations.sqlite` on 
 1. How many tickets are in this data set? Which time period do these tickets span? Which years have most data?
 
 ```{r}
-SQLdbname = "/home/m280-data/la_parking/LA_Parking_Citations.sqlite"
+SQLdbname = "/home/m280-data/la_parking/LA_Parking_Citations_Extra.sqlite"
 # con = dbConnect(RSQLite::SQLite(), SQLdbname)
-connection = dbConnect(RSQLite::SQLite(), SQLdbname, ":memory:")
+connection = dbConnect(RSQLite::SQLite(), SQLdbname)
 
 LAtickets = dplyr::tbl(connection, "latix")
-collected_LA = collect(LAtickets)
 
-number_of_tickets = collected_LA %>% summarise(n = n())
-number_of_tickets$n
+number_of_tickets = LAtickets %>% summarise(n = n()) %>% collect()
+number_of_tickets
 ```
 
-**Answer**: There are 4,044,488 tickets in this data set. 
-
-```{r}
-month = sqldf("SELECT strftime('%m',datetime(Issue_DateTime, 'unixepoch')) as Month from latix", dbname = SQLdbname)
-
-day = sqldf("SELECT strftime('%d',datetime(Issue_DateTime, 'unixepoch')) as Day from latix", dbname = SQLdbname)
-
-# Time Period Spanned (4/27/2010 to 12/30/2017)
-r1 = sqldf("SELECT min(strftime('%Y-%m-%d', datetime(Issue_DateTime, 'unixepoch'))) as Start from latix", dbname = SQLdbname)
-
-r2 = sqldf("SELECT max(strftime('%Y-%m-%d', datetime(Issue_DateTime, 'unixepoch'))) as End from latix", dbname = SQLdbname)
-
-timespan = cbind(r1, r2)
-timespan
-```
-
-**Answer**: The tickets span from April 27, 2010 to December 30, 2017. 
+**Answer**: There are 4,044,488 tickets in this data set than span from April 27, 2010 to December 30, 2017. 
 
 ```{r}
 #which year has the most tickets?
-tickets_per_year = sqldf("SELECT strftime('%Y',datetime(Issue_DateTime, 'unixepoch')) as Year from latix", dbname = SQLdbname) %>% group_by(Year) %>% summarize(n = n())
+tickets_per_year = LAtickets %>% group_by(Issue_Year) %>% summarize(n = n()) %>% arrange(desc(n))
 print(tickets_per_year)
 ```
 
@@ -142,42 +125,33 @@ print(tickets_per_year)
 
 ```{r}
 #which hour are you most likely to get a ticket?
-tickets_per_hour = collected_LA %>% 
-mutate(converted_datetime = as.POSIXct(Issue_DateTime, origin = "1970-01-01 UTC", tz = "PST"),
-Hour = hour(converted_datetime)) %>% 
-group_by(Hour) %>% summarize(n = n()) %>% mutate(proportion = n / sum(n)) %>% arrange(desc(proportion))
-
-head(tickets_per_hour, n = 25)
+tickets_per_hour = LAtickets %>% group_by(Issue_Hour) %>% summarize(n = n()) %>% arrange(desc(n))
+print(tickets_per_hour)
 ```
 
 **Answer**: You are most likely to get a ticket at 12pm.
 
 ```{r}
 #which weekday are you most likely to get a ticket?
-tickets_per_weekday = collected_LA %>% 
-mutate(converted_date = as.POSIXct(Issue_DateTime, origin = "1970-01-01 UTC", tz = "PST"),
-Weekday = weekdays(converted_date)) %>% 
-group_by(Weekday) %>% summarize(n = n()) %>% mutate(proportion = n / sum(n)) %>% arrange(desc(proportion))
-
-head(tickets_per_weekday, n = 7)
+tickets_per_weekday = LAtickets %>% group_by(Issue_Wday) %>% summarize(n = n()) %>% arrange(desc(n))
+print(tickets_per_weekday)
 ```
 
-**Answer**: You are most likely to get a ticket on Tuesday.
+**Answer**: You are most likely to get a ticket on the 3rd day of the week, Tuesday.
 
 ```{r}
 #which month are you most likely to get a ticket?
-tickets_per_month = sqldf("SELECT strftime('%m',datetime(Issue_DateTime, 'unixepoch')) as Month from latix", dbname = SQLdbname) %>% group_by(Month) %>% summarize(n = n()) %>% mutate(proportion = n / sum(n)) %>% arrange(desc(proportion))
+tickets_per_month = LAtickets %>% group_by(Issue_Month) %>% summarize(n = n()) %>% arrange(desc(n))
+print(tickets_per_month)
 
-head(tickets_per_month, 12)
 ```
 
-**Answer**: You are most likely to get a ticket in March. 
+**Answer**: You are most likely to get a ticket on the 3rd month of the year, March. 
 
 ```{r}
 #which month day are you most likely to get a ticket?
-tickets_per_monthday = sqldf("SELECT strftime('%d',datetime(Issue_DateTime, 'unixepoch')) as MonthDay from latix", dbname = SQLdbname) %>% group_by(MonthDay) %>% summarize(n = n()) %>% mutate(proportion = n / sum(n)) %>% arrange(desc(proportion))
-
-head(tickets_per_monthday, 31)
+tickets_per_monthday = LAtickets %>% group_by(Issue_Day) %>% summarize(n = n()) %>% arrange(desc(n))
+print(tickets_per_monthday)
 ```
 
 **Answer**: You are most likely to get a ticket on the 22nd day of the month. 
@@ -186,11 +160,8 @@ head(tickets_per_monthday, 31)
 
 ```{r}
 #which make are you most likely to get a ticket?
-tickets_per_make = collected_LA %>% 
-group_by(Make) %>% summarize(n = n()) %>% mutate(proportion = n / sum(n)) %>% arrange(desc(proportion))
-
-head(tickets_per_make)
-
+tickets_per_make = LAtickets %>% group_by(Make) %>% summarize(n = n()) %>% arrange(desc(n))
+print(tickets_per_make)
 ```
 
 **Answer**: The car make that received the most citations is Toyota.  
@@ -199,19 +170,16 @@ head(tickets_per_make)
 
 ```{r}
 #how many different colors of cars were ticketed?
-number_of_colors = collected_LA %>% summarise(n = n_distinct(Color))
-number_of_colors$n
-
+number_of_colors = LAtickets %>% summarise(n = n_distinct(Color))
+print(number_of_colors)
 ```
 
-**Answer**: There are 66 different colors of cars that were ticketed. 
+**Answer**: There are 65 different colors of cars that were ticketed. 
 
 ```{r}
 #which color attracted most tickets?
-tickets_per_color = collected_LA %>% 
-group_by(Color) %>% summarize(n = n()) %>% mutate(proportion = n / sum(n)) %>% arrange(desc(proportion))
-
-head(tickets_per_color)
+tickets_per_color = LAtickets %>% group_by(Color) %>% summarize(n = n()) %>% arrange(desc(n))
+print(tickets_per_color)
 ```
 
 **Answer**: Black colored cars attracted the most tickets.
@@ -220,10 +188,8 @@ head(tickets_per_color)
 5. What are the most common ticket types?
 
 ```{r}
-tickets_per_violationtype = collected_LA %>% 
-group_by(Violation_Description) %>% summarize(n = n()) %>% mutate(proportion = n / sum(n)) %>% arrange(desc(proportion))
-
-head(tickets_per_violationtype, n = 10, main = "Top 10 Ticket Types")
+tickets_per_violationtype = LAtickets %>% group_by(Violation_Description) %>% summarize(n = n()) %>% arrange(desc(n))
+print(tickets_per_violationtype)
 ```
 
 **Answer**: The top 10 most common ticket types are shown above. We see that the most common ticket type is "NO PARK/STREET CLEAN" Violation. 
@@ -231,34 +197,38 @@ head(tickets_per_violationtype, n = 10, main = "Top 10 Ticket Types")
 6. How much money was collected on parking tickets in 2015 and 2016?
 
 ```{r}
-money_collected_156 = collected_LA %>% mutate(converted_date = as.POSIXct(Issue_DateTime, origin = "1970-01-01 UTC", tz = "PST"),
-Year = year(converted_date)) %>% filter(Year == 2015 | Year == 2016) %>% group_by(Year) %>%
+money_collected_156 = LAtickets %>% filter(Issue_Year == 2015 | Issue_Year == 2016) %>% group_by(Issue_Year) %>%
   summarize(`Total Collected in Dollars` = sum(Fine_amount, na.rm = T))
 
-money_collected_156
+print(money_collected_156)
 ```
 
-**Answer**: There was 151,011,667 dollars collected in parking tickets in 2015 and 123,223,403 dollars collected in parking tickets in 2016. 
+**Answer**: There was 151,006,794 dollars collected in parking tickets in 2015 and 123,236,136 dollars collected in parking tickets in 2016. 
 
 7. Visualize any other information you are interested in.
 
-**Answer**: Below, I visualize the number of tickets per car make, and the distribution of Ticket Fine amount by Car Body style. 
+**Answer**: Below, I visualize the distribution of the Fine amount for the top 10 car makes. Notice for the top 10 car makes, that the most expensive makes, BMW and Mercedez have the smallest Fine amount in comparison to the other makes.  
 
 ```{r}
-tickets_per_make = collected_LA %>% 
-group_by(Make) %>% summarize(n = n()) %>% mutate(proportion = n / sum(n)) %>% arrange(desc(proportion))
+top10ticketmakes = collect(head(tickets_per_make, 10))
 
-tickets_per_make %>%
-  ggplot(aes(x = n)) +
-  geom_histogram(bins = 50) +
+top10ticketmakes %>% 
+  ggplot(mapping = aes(x = n)) +
+  geom_histogram(bins = 10) +
   geom_rug() +
   facet_grid(Make ~ .)
 
-#which make are you most likely to get a ticket?
-tickets_per_make = collected_LA %>% 
-group_by(Make) %>% mutate(n = n()) %>% arrange(desc(n))
+topticketedmakeswithothers = LAtickets %>% select(Make, Body_Style, Fine_amount) %>% group_by(Make) %>% summarise(n = n(), Body_Style = Body_Style, Fine_amount = Fine_amount) %>% arrange(desc(n))
 
+top10ticketmakeswitho = collect(head(topticketedmakeswithothers, 10))
 
-ggplot(collected_LA) + geom_boxploth(aes(x = Body_Style, y = cut_number(Fine_amount, 2), colour = Make))
+top10ticketmakeswitho %>% ggplot(mapping = aes(x = n)) +
+  geom_histogram(binwidth = 1, aes(colour = Make)) +
+  labs(title = "Fine Amounts For the Top 10 Car Makes", x = "Number of Tickets")
+
+top10ticketmakeswitho %>%
+ggplot(mapping = aes(x = Make, y = Fine_amount)) +
+  geom_boxplot() +
+  labs(title = "Boxplot of", x = "Make")
 
 ```
