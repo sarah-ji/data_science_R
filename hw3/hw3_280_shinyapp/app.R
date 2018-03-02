@@ -5,7 +5,7 @@ library(dplyr)
 library(tidyr)
 library(rsconnect)
 #rsconnect::deployApp('~/biostat-m280-2018-winter/hw3/hw3_280_shinyapp')
-setwd("~/biostat-m280-2018-winter/hw3/hw3_280_shinyapp")
+#setwd("~/biostat-m280-2018-winter/hw3/hw3_280_shinyapp")
 df <- readRDS("LA_payroll.rds") 
 
 df1 = df %>% mutate(id = row_number()) %>%
@@ -75,7 +75,7 @@ ui <- fluidPage(
                                        value = 5, min = 1, max = nrow(df))
                           ),
                         mainPanel(
-                          tableOutput('depcostmost'))
+                          tableOutput('depcostmost'), plotOutput('plotdepcost'))
                       )),
              tabPanel("Question 1.6",
                       pageWithSidebar(
@@ -90,19 +90,8 @@ ui <- fluidPage(
                                        max = nrow(df))),
                         mainPanel(
                           tableOutput('aboveprojected'), plotOutput("plot69"))
-             )),
-             tabPanel("Question 1.6",
-                      pageWithSidebar(
-                        headerPanel('Which departments have the Highest Average Benefit Cost?'),
-                        sidebarPanel(
-                          selectInput('yr6', 'Select Year:',
-                                      sort(levels(as.factor(df$Year)),
-                                           decreasing = T)),
-                          numericInput(inputId ='obs5', label = 'Top n departments to view:', value = 5,
-                                       min = 1, max = nrow(df))),
-                        mainPanel(
-                          tableOutput('depbenefit'), plotOutput("plot5"))
-                        ))
+             ))
+             
 ))
 
 server <- function(input,output){
@@ -114,7 +103,7 @@ data_plot2 <- reactive({
 })
 
 df_ui_year_most <- reactive({
-  test2 <- df[df$Year %in% input$yr2, ] %>% arrange(desc(Total_Payments)) %>% select(Department_Title, Total_Payments, Base_Pay, Overtime_Pay, Other_Pay)
+  test2 <- df[df$Year %in% input$yr2, ] %>% arrange(desc(Total_Payments)) %>% select(Department_Title, Job_Title, Total_Payments, Base_Pay, Overtime_Pay, Other_Pay)
   print(test2)
 })
 
@@ -128,10 +117,10 @@ df_ui_year_depmost <- reactive({if (input$meth == "Mean"){
 }
   else if (input$meth == "Median"){
     test3 <- df[df$Year %in% input$yr3, ] %>% group_by(`Department Title` = Department_Title) %>%
-            summarise(`Median Total Payments` = median(Total_Payments),
-                      `Median Base Payments` = median(Base_Pay),
-                      `Median Overtime Payments` = median(Overtime_Pay),
-                      `Median Other Payments` = median(Other_Pay)) %>%
+            summarise(`Median Total Payments` = median(Total_Payments, na.rm = T),
+                      `Median Base Payments` = median(Base_Pay, na.rm = T),
+                      `Median Overtime Payments` = median(Overtime_Pay, na.rm = T),
+                      `Median Other Payments` = median(Other_Pay, na.rm = T)) %>%
             arrange(desc(`Median Total Payments`))
   }
   print(test3)
@@ -222,6 +211,15 @@ head(sumstat)
    head(df_depcostmost(), n = input$obs3)
  })
  
+ output$plotdepcost <-renderPlot({
+   hist(as.numeric(unlist(df_depcostmost()[,2])),
+        breaks = 100,
+        col = "lightblue", border = 'white',
+        main = input$yr4,
+        xlab = "Total Yearly Cost")
+ })
+ 
+ 
  output$aboveprojected = renderTable({
    head(df_exceeded()[,c(1:3,7)], n = input$obs4)
  })
@@ -239,9 +237,8 @@ head(sumstat)
  })
  
  
- 
  output$plot5 <-renderPlot({
-   hist(as.numeric(unlist(df_depbenefit())),
+   hist(as.numeric(unlist(df_depbenefit()[1:input$obs5, 2])),
         breaks = 50,
         col = "lightblue", border = 'white',
         main = input$yr6,
