@@ -5,13 +5,13 @@ library(dplyr)
 library(tidyr)
 library(rsconnect)
 #rsconnect::deployApp('~/biostat-m280-2018-winter/hw3/hw3_280_shinyapp')
-#setwd("~/biostat-m280-2018-winter/hw3/hw3_280_shinyapp")
+setwd("~/biostat-m280-2018-winter/hw3/hw3_280_shinyapp")
 df <- readRDS("LA_payroll.rds") 
 
 df1 = df %>% mutate(id = row_number()) %>%
   select(names(df)[c(1)], id) %>% gather(variable, value, -id)
 df2 = df %>% mutate(id = row_number()) %>%
-  select(names(df)[c(3:7)], id) %>% gather(variable, value, -id)
+  select(names(df)[c(4:8)], id) %>% gather(variable, value, -id)
 df3 = left_join(df1, df2, by = "id")
 names(df3) = c("id", "y", "Year","variable","Dollars")
 
@@ -21,76 +21,58 @@ ui <- fluidPage(
   titlePanel(title=h4("Payroll", align="center")),
   
   navbarPage("LA Payroll",
-             tabPanel("Question 1.2",
-                      pageWithSidebar(
-                        headerPanel('Total LA Payroll by Year'),
-                        sidebarPanel(
-                          selectInput('type_pay', 'Type of Payment:', 
-                                      choices = names(df)[3:7]),
-                          selectInput('yr1', 'Select Year:',
-                                      sort(levels(as.factor(df$Year)),
+    tabPanel("Question 1.2",
+      pageWithSidebar(
+        headerPanel('Total LA Payroll by Year'),
+          sidebarPanel(
+          selectInput('type_pay', 'Type of Payment:', choices = names(df)[4:8]),
+          selectInput('yr1', 'Select Year:',
+            sort(levels(as.factor(df$Year)), decreasing = T)),
+            fluidRow("Summary Statistics By Selected Year",
+            tableOutput('summary'), width = "65")),
+              mainPanel("Visualize the LA Payroll for your Favorite Year",
+fluidRow(plotOutput("plot2"), 
+         splitLayout(plotOutput("plot13"), plotOutput("plot3", width = "80%"), 
+                     cellWidths = c("40%", "60%")))))),
+    tabPanel("Question 1.3",
+      pageWithSidebar(
+        headerPanel('Who earned the most?'),
+          sidebarPanel(
+          selectInput('yr2', 'Select Year:', sort(levels(as.factor(df$Year)),
                                            decreasing = T)),
-                          fluidRow("Summary Statistics By Selected Year",
-                                   tableOutput('summary'), width = "65")
-                        ),
-                        mainPanel("Visualize the LA Payroll for your Favorite Year",
-                                  fluidRow(
-                          plotOutput("plot2"), splitLayout(plotOutput("plot13"), plotOutput("plot3", width = "80%"), cellWidths = c("40%", "60%")
-                        ))))),
-             tabPanel("Question 1.3",
-                      pageWithSidebar(
-                        headerPanel('Who earned the most?'),
-                        sidebarPanel(
-                          selectInput('yr2', 'Select Year:',
-                                      sort(levels(as.factor(df$Year)),
+          numericInput('obs1', 'Top n earnings to view:', value = 10,
+                                       min = 1, max = nrow(df))),
+             mainPanel(tableOutput('tablemost'), plotOutput("plotmost")))),
+    tabPanel("Question 1.4",
+      pageWithSidebar(
+        headerPanel('Which departments earned the most by Median or Mean?'),
+          sidebarPanel(
+          selectInput('yr3', 'Select Year:', sort(levels(as.factor(df$Year)),
                                            decreasing = T)),
-                          numericInput('obs1', 'Top n earnings to view:', value = 10,
-                                       min = 1, max = nrow(df))
-                        ),
-                        mainPanel(
-                          tableOutput('tablemost'), plotOutput("plotmost")
-                        ))),
-             tabPanel("Question 1.4",
-                      pageWithSidebar(
-                        headerPanel('Which departments earned the most by Median or Mean?'),
-                        sidebarPanel(
-                          selectInput('yr3', 'Select Year:',
-                                      sort(levels(as.factor(df$Year)),
-                                           decreasing = T)),
-                          numericInput(inputId ='obs2', label = 'Top n earning departments to view:', value = 5,
-                                       min = 1, max = nrow(df)),
-                          selectInput('meth', 'Choose Method:', choices = c("Median", "Mean"))
-                        ),
-                        mainPanel(
-                          tableOutput('depmost'), plotOutput("plotdepmostmed")
-                        ))),
-             tabPanel("Question 1.5",
-                      pageWithSidebar(
-                        headerPanel('Which departments cost the most?'),
-                        sidebarPanel(
-                          selectInput('yr4', 'Select Year:',
-                                      sort(levels(as.factor(df$Year)),
+          numericInput(inputId ='obs2', 
+label = 'Top n earning departments:', value = 5, min = 1, max = nrow(df)),
+          selectInput('meth', 'Choose Method:', choices = c("Median", "Mean"))),
+            mainPanel(tableOutput('depmost'), plotOutput("plotdepmostmed")))),
+      tabPanel("Question 1.5",
+        pageWithSidebar(
+          headerPanel('Which departments cost the most?'),
+            sidebarPanel(
+            selectInput('yr4', 'Select Year:', sort(levels(as.factor(df$Year)),
                                         decreasing = T)),
-                          numericInput(inputId = 'obs3', label = 'Top n costly departments to view:',
-                                       value = 5, min = 1, max = nrow(df))
-                          ),
-                        mainPanel(
-                          tableOutput('depcostmost'), plotOutput('plotdepcost'))
-                      )),
-             tabPanel("Question 1.6",
-                      pageWithSidebar(
-                        headerPanel('Which lucky individuals are paid more than their projected annual salary?'),
-                        sidebarPanel(
-                          selectInput('yr5', 'Select Year:',
-                                      sort(levels(as.factor(
-                                        df$Year)),
-                                        decreasing = T)),
-                          numericInput(inputId = 'obs4', label = 'Top n happy individuals earning more than expected:',
+            numericInput(inputId = 'obs3', label = 'Top n costly departments:',
+                                       value = 5, min = 1, max = nrow(df))),
+            mainPanel(tableOutput('depcostmost'), plotOutput('plotdepcost')))),
+      tabPanel("Question 1.6",
+        pageWithSidebar(
+        headerPanel('Which individuals are paid more than expected?'),
+            sidebarPanel(
+            selectInput('yr5', 'Select Year:', 
+                        sort(levels(as.factor(df$Year)), decreasing = T)),
+            numericInput(inputId = 'obs4', 
+                        label = 'Top n individuals earning more than expected:',
                                        value = 5, min = 1,
                                        max = nrow(df))),
-                        mainPanel(
-                          tableOutput('aboveprojected'), plotOutput("plot69"))
-             ))
+            mainPanel(tableOutput('aboveprojected'), plotOutput("plot69"))))
              
 ))
 
@@ -103,50 +85,55 @@ data_plot2 <- reactive({
 })
 
 df_ui_year_most <- reactive({
-  test2 <- df[df$Year %in% input$yr2, ] %>% arrange(desc(Total_Payments)) %>% select(Department_Title, Job_Title, Total_Payments, Base_Pay, Overtime_Pay, Other_Pay)
+  test2 <- df[df$Year %in% input$yr2, ] %>%
+    arrange(desc(Total_Payments)) %>% 
+    select(Department_Title, Job_Title, Total_Payments, Base_Pay, 
+           Overtime_Pay, Other_Pay)
   print(test2)
 })
 
 df_ui_year_depmost <- reactive({if (input$meth == "Mean"){
-  test3 <- df[df$Year %in% input$yr3, ] %>% group_by(`Department Title` = Department_Title) %>%
-            summarise(`Mean Total Payments` = mean(Total_Payments, na.rm = T),
-                      `Mean Base Payments` = mean(Base_Pay, na.rm = T),
-                      `Mean Overtime Payments` = mean(Overtime_Pay, na.rm = T),
-                      `Mean Other Payments` = mean(Other_Pay, na.rm = T)) %>%
-            arrange(desc(`Mean Total Payments`))
+  test3 <- df[df$Year %in% input$yr3, ] %>% 
+    group_by(`Department Title` = Department_Title) %>%
+      summarise(`Mean Total Payments` = mean(Total_Payments, na.rm = T),
+                `Mean Base Payments` = mean(Base_Pay, na.rm = T),
+                `Mean Overtime Payments` = mean(Overtime_Pay, na.rm = T),
+                `Mean Other Payments` = mean(Other_Pay, na.rm = T)) %>%
+        arrange(desc(`Mean Total Payments`))
 }
   else if (input$meth == "Median"){
-    test3 <- df[df$Year %in% input$yr3, ] %>% group_by(`Department Title` = Department_Title) %>%
-            summarise(`Median Total Payments` = median(Total_Payments, na.rm = T),
-                      `Median Base Payments` = median(Base_Pay, na.rm = T),
-                      `Median Overtime Payments` = median(Overtime_Pay, na.rm = T),
-                      `Median Other Payments` = median(Other_Pay, na.rm = T)) %>%
-            arrange(desc(`Median Total Payments`))
+    test3 <- df[df$Year %in% input$yr3, ] %>% 
+      group_by(`Department Title` = Department_Title) %>%
+        summarise(`Median Total Payments` = median(Total_Payments, na.rm = T),
+                  `Median Base Payments` = median(Base_Pay, na.rm = T),
+                  `Median Overtime Payments` = median(Overtime_Pay, na.rm = T),
+                  `Median Other Payments` = median(Other_Pay, na.rm = T)) %>%
+          arrange(desc(`Median Total Payments`))
   }
   print(test3)
 })
 
 df_depcostmost <- reactive({
-  test4 <- df[df$Year %in% input$yr4, ] %>% group_by(`Department Title` = Department_Title) %>%
-                     summarise(`Total Yearly Cost` = sum(Total_Payments, na.rm=T),
-                               `Yearly Base Cost` = sum(Base_Pay, na.rm=T),
-                               `Yearly Overtime Cost` = sum(Overtime_Pay, na.rm=T),
-                               `Yearly Other Cost` = sum(Other_Pay, na.rm=T)) %>%
-                     arrange(desc(`Total Yearly Cost`))
+  test4 <- df[df$Year %in% input$yr4, ] %>% 
+    group_by(`Department Title` = Department_Title) %>%
+      summarise(`Total Yearly Cost` = sum(Total_Payments, na.rm=T),
+                `Yearly Base Cost` = sum(Base_Pay, na.rm=T),
+                `Yearly Overtime Cost` = sum(Overtime_Pay, na.rm=T),
+                 `Yearly Other Cost` = sum(Other_Pay, na.rm=T)) %>%
+        arrange(desc(`Total Yearly Cost`))
   print(test4)
 })
 
 df_exceeded <- reactive({
-  test5 <- df_exceed[df_exceed$Year %in% input$yr5, ] %>% group_by(Department_Title) %>% mutate(`Amount Exceeding Projected Salary` = Total_Payments - Projected_Annual_Salary) %>% arrange(desc(`Amount Exceeding Projected Salary`)) %>% select(Department_Title, Projected_Annual_Salary, Total_Payments, Base_Pay, Overtime_Pay, Other_Pay, `Amount Exceeding Projected Salary`)
+  test5 <- df_exceed[df_exceed$Year %in% input$yr5, ] %>%
+    group_by(Department_Title) %>% 
+mutate(`$ Exceeding Projected` = Total_Payments - Projected_Annual_Salary) %>%
+    arrange(desc(`$ Exceeding Projected`)) %>% 
+select(Department_Title, Projected_Annual_Salary, Total_Payments, Base_Pay,
+       Overtime_Pay, Other_Pay, `$ Exceeding Projected`)
   print(test5)  
 })
 
-df_depbenefit <- reactive({
-  test6 <- df[df$Year %in% input$yr6, ] %>% filter(Average_Benefit_Cost > 0) %>% group_by(`Department Title` = Department_Title) %>%
-    summarise(`Average Benefit Cost` = mean(Average_Benefit_Cost, na.rm = T)) %>% arrange(desc(`Average Benefit Cost`))
-  print(test6)
-  
-})
 
 output$summary <- renderTable({
 sumstat =  kable(summary(df[df$Year %in% input$yr1, 4:7]))
@@ -162,16 +149,19 @@ head(sumstat)
  })
  
  output$plot3 <- renderPlot({
-   ggplot(data_plot2() ,aes(x= Dollars)) + geom_histogram(colour = "blue") + geom_rug() +
-     facet_grid(variable ~ .) + labs(title = "Distribution of Payroll by Type and Selected Year")}, height = 400, width = 600)
+   ggplot(data_plot2() ,aes(x= Dollars)) + geom_histogram(colour = "blue") + 
+     geom_rug() +
+     facet_grid(variable ~ .) + 
+     labs(title = "Distribution of Payroll by Type and Selected Year")},
+   height = 400, width = 600)
  
  output$plot13 <- renderPlot({
    df %>% filter(Year == as.numeric(input$yr1)) %>%
      select(`Total Pay` = Total_Payments, `Base Pay` = Base_Pay,
             `Overtime Pay` = Overtime_Pay, `Other Pay` = Other_Pay) %>%
      mutate_all(., funs(. / 1000)) %>%
-     gather(type, pay, `Total Pay`:`Other Pay`, factor_key = T) %>%
-     ggplot(mapping = aes(x = pay, colour = type)) +
+     gather(Type, pay, `Total Pay`:`Other Pay`, factor_key = T) %>%
+     ggplot(mapping = aes(x = pay, colour = Type)) +
      geom_freqpoly() + coord_cartesian(xlim = c(0, 300)) +
      labs(title = input$yr0, x = "Pay (Thousand $)", y = "Count",
           colour = "Type")
