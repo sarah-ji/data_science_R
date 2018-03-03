@@ -5,7 +5,7 @@ library(dplyr)
 library(tidyr)
 library(rsconnect)
 #rsconnect::deployApp('~/biostat-m280-2018-winter/hw3/hw3_280_shinyapp')
-setwd("~/biostat-m280-2018-winter/hw3/hw3_280_shinyapp")
+#setwd("~/biostat-m280-2018-winter/hw3/hw3_280_shinyapp")
 df <- readRDS("LA_payroll.rds") 
 
 df1 = df %>% mutate(id = row_number()) %>%
@@ -15,7 +15,7 @@ df2 = df %>% mutate(id = row_number()) %>%
 df3 = left_join(df1, df2, by = "id")
 names(df3) = c("id", "y", "Year","variable","Dollars")
 
-df_exceed = df %>% filter(Total_Payments > Projected_Annual_Salary)
+df_exceed = df %>% filter(Total_Payments > Projected_Salary)
 
 ui <- fluidPage(
   titlePanel(title=h4("Payroll", align="center")),
@@ -127,9 +127,9 @@ df_depcostmost <- reactive({
 df_exceeded <- reactive({
   test5 <- df_exceed[df_exceed$Year %in% input$yr5, ] %>%
     group_by(Department_Title) %>% 
-mutate(`$ Exceeding Projected` = Total_Payments - Projected_Annual_Salary) %>%
+mutate(`$ Exceeding Projected` = Total_Payments - Projected_Salary) %>%
     arrange(desc(`$ Exceeding Projected`)) %>% 
-select(Department_Title, Projected_Annual_Salary, Total_Payments, Base_Pay,
+select(Department_Title, Projected_Salary, Total_Payments, Base_Pay,
        Overtime_Pay, Other_Pay, `$ Exceeding Projected`)
   print(test5)  
 })
@@ -163,7 +163,7 @@ head(sumstat)
      gather(Type, pay, `Total Pay`:`Other Pay`, factor_key = T) %>%
      ggplot(mapping = aes(x = pay, colour = Type)) +
      geom_freqpoly() + coord_cartesian(xlim = c(0, 300)) +
-     labs(title = input$yr0, x = "Pay (Thousand $)", y = "Count",
+     labs(title = input$yr0, x = "Payroll in Thousands of Dollars $", y = "Count",
           colour = "Type")
  })
  

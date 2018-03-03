@@ -1,6 +1,6 @@
 ---
-title: "hw3"
-author: "SarahJi"
+title: "HW 3"
+author: "Sarah Ji"
 date: "2/20/2018"
 output: html_document
 ---
@@ -10,11 +10,13 @@ knitr::opts_chunk$set(echo = FALSE)
 knitr::opts_chunk$set(evaluate = TRUE)
 knitr::opts_chunk$set(warning = FALSE)
 #these will be the packages required to run this program. 
-required_packages = c("data.table", "tidyr", "dplyr", "readr", "DBI", "RSQLite", "sqldf", "dbplyr", "lubridate")
+required_packages = c("data.table", "tidyr", "dplyr", "readr", "DBI",
+                      "RSQLite", "sqldf", "dbplyr", "lubridate")
 
 # this function will be checking first to see if the required packages are there or not then I'll install and load them at once.
 needed_packages <- function(requiredpackageslist){
-    package_checking <- requiredpackageslist[!(requiredpackageslist %in% installed.packages()[, "Package"])]
+    package_checking <- requiredpackageslist[!(requiredpackageslist %in%
+                                            installed.packages()[, "Package"])]
     if (length(package_checking)) 
         install.packages(package_checking, dependencies = TRUE)
     sapply(requiredpackageslist, require, character.only = TRUE)
@@ -46,25 +48,39 @@ The `/home/m280-data/la_payroll/LA_City_Employee_Payroll.csv` file on teaching s
 LA_payroll = read_csv("/home/m280-data/la_payroll/LA_City_Employee_Payroll.csv")
 
 LA_payroll = LA_payroll %>% 
-select(Year, `Department Title`, `Job Class Title`, `Projected Annual Salary`, `Total Payments`, `Base Pay`, `Overtime Pay`, `Other Pay (Payroll Explorer)`, `Average Health Cost`, `Hourly or Event Rate`, `Average Benefit Cost`, `Employment Type`, `Benefits Plan`)
+select(Year, `Department Title`, `Job Class Title`, `Projected Annual Salary`,
+       `Total Payments`, `Base Pay`, `Overtime Pay`,
+       `Other Pay (Payroll Explorer)`, `Average Health Cost`,
+       `Hourly or Event Rate`, `Average Benefit Cost`,
+       `Employment Type`, `Benefits Plan`)
 
-names(LA_payroll) = c("Year", "Department_Title", "Job_Title", "Projected_Annual_Salary", "Total_Payments", "Base_Pay", "Overtime_Pay", "Other_Pay", "Average_Healthcare_Cost", "Hourly_Rate", "Average_Benefit_Cost", "Employment_Type", "Benefits_Plan")
+names(LA_payroll) = c("Year", "Department_Title", "Job_Title",
+                      "Projected_Salary", "Total_Payments",
+                      "Base_Pay", "Overtime_Pay", "Other_Pay",
+                      "Average_Healthcare_Cost", "Hourly_Rate",
+                      "Average_Benefit_Cost", "Employment_Type",
+                      "Benefits_Plan")
 
-LA_payroll$Projected_Annual_Salary = parse_number(LA_payroll$Projected_Annual_Salary)
+LA_payroll$Projected_Salary = parse_number(LA_payroll$Projected_Salary)
 LA_payroll$Total_Payments = parse_number(LA_payroll$Total_Payments)
 LA_payroll$Base_Pay = parse_number(LA_payroll$Base_Pay)
 LA_payroll$Overtime_Pay = parse_number(LA_payroll$Overtime_Pay)
 LA_payroll$Other_Pay = parse_number(LA_payroll$Other_Pay)
-LA_payroll$Department_Title = parse_factor(LA_payroll$Department_Title, levels = unique(LA_payroll$Department_Title))
+LA_payroll$Department_Title = parse_factor(LA_payroll$Department_Title,
+                                  levels = unique(LA_payroll$Department_Title))
 LA_payroll$Average_Healthcare_Cost = parse_number(LA_payroll$Average_Healthcare_Cost)
 LA_payroll$Hourly_Rate = parse_number(LA_payroll$Hourly_Rate)
 LA_payroll$Average_Benefit_Cost = parse_number(LA_payroll$Average_Benefit_Cost)
-LA_payroll$Employment_Type = parse_factor(LA_payroll$Employment_Type, levels = unique(LA_payroll$Employment_Type))
-LA_payroll$Job_Title = parse_factor(LA_payroll$Job_Title, levels = unique(LA_payroll$Job_Title))
-LA_payroll$Benefits_Plan = parse_factor(LA_payroll$Benefits_Plan, levels = unique(LA_payroll$Benefits_Plan))
+LA_payroll$Employment_Type = parse_factor(LA_payroll$Employment_Type,
+                                  levels = unique(LA_payroll$Employment_Type))
+LA_payroll$Job_Title = parse_factor(LA_payroll$Job_Title,
+                                    levels = unique(LA_payroll$Job_Title))
+LA_payroll$Benefits_Plan = parse_factor(LA_payroll$Benefits_Plan,
+                                    levels = unique(LA_payroll$Benefits_Plan))
 
-#automatically compressed
-saveRDS(LA_payroll, "LA_payroll.rds")
+#automatically compressed and save it into the shiny app folder
+saveRDS(LA_payroll,
+        "~/biostat-m280-2018-winter/hw3/hw3_280_shinyapp/LA_payroll.rds")
 ```
 
 **Answer**: For efficiency of the Shiny app, I have pre-processed and saved the data as a compressed RDS file to be used in the app. The compressed RDS file is saved in my directory as, LA_payroll.rds.
@@ -94,6 +110,7 @@ In the years 2013-2016, the Fire Department earned the most both by median and m
 
 **Answer**: [My LA Payroll Shiny App Link](https://sarahji.shinyapps.io/hw3_280_shinyapp/)
 
+
 ## Q2 LA City Parking War
 
 The SQLite database `/home/m280-data/la_parking/LA_Parking_Citations.sqlite` on teaching server contains information about parking tickets in LA City. It was downloaded from [LA Open Data Portal](https://data.lacity.org/A-Well-Run-City/Parking-Citations/wjz9-h9np). Connect to the database and answer following questions using plots and summary statistics. In this exercise, you are **not** allowed to load whole data into memory. Use the _transform in database, plot in R_ strategy.
@@ -115,7 +132,8 @@ number_of_tickets
 
 ```{r}
 #which year has the most tickets?
-tickets_per_year = LAtickets %>% group_by(Issue_Year) %>% summarize(n = n()) %>% arrange(desc(n))
+tickets_per_year = LAtickets %>% 
+  group_by(Issue_Year) %>% summarize(n = n()) %>% arrange(desc(n))
 print(tickets_per_year)
 ```
 
@@ -125,7 +143,8 @@ print(tickets_per_year)
 
 ```{r}
 #which hour are you most likely to get a ticket?
-tickets_per_hour = LAtickets %>% group_by(Issue_Hour) %>% summarize(n = n()) %>% arrange(desc(n))
+tickets_per_hour = LAtickets %>%
+  group_by(Issue_Hour) %>% summarize(n = n()) %>% arrange(desc(n))
 print(tickets_per_hour)
 ```
 
@@ -133,7 +152,8 @@ print(tickets_per_hour)
 
 ```{r}
 #which weekday are you most likely to get a ticket?
-tickets_per_weekday = LAtickets %>% group_by(Issue_Wday) %>% summarize(n = n()) %>% arrange(desc(n))
+tickets_per_weekday = LAtickets %>% 
+  group_by(Issue_Wday) %>% summarize(n = n()) %>% arrange(desc(n))
 print(tickets_per_weekday)
 ```
 
@@ -141,7 +161,8 @@ print(tickets_per_weekday)
 
 ```{r}
 #which month are you most likely to get a ticket?
-tickets_per_month = LAtickets %>% group_by(Issue_Month) %>% summarize(n = n()) %>% arrange(desc(n))
+tickets_per_month = LAtickets %>% 
+  group_by(Issue_Month) %>% summarize(n = n()) %>% arrange(desc(n))
 print(tickets_per_month)
 
 ```
@@ -150,7 +171,8 @@ print(tickets_per_month)
 
 ```{r}
 #which month day are you most likely to get a ticket?
-tickets_per_monthday = LAtickets %>% group_by(Issue_Day) %>% summarize(n = n()) %>% arrange(desc(n))
+tickets_per_monthday = LAtickets %>%
+  group_by(Issue_Day) %>% summarize(n = n()) %>% arrange(desc(n))
 print(tickets_per_monthday)
 ```
 
@@ -160,7 +182,8 @@ print(tickets_per_monthday)
 
 ```{r}
 #which make are you most likely to get a ticket?
-tickets_per_make = LAtickets %>% group_by(Make) %>% summarize(n = n()) %>% arrange(desc(n))
+tickets_per_make = LAtickets %>%
+  group_by(Make) %>% summarize(n = n()) %>% arrange(desc(n))
 print(tickets_per_make)
 ```
 
@@ -178,7 +201,8 @@ print(number_of_colors)
 
 ```{r}
 #which color attracted most tickets?
-tickets_per_color = LAtickets %>% group_by(Color) %>% summarize(n = n()) %>% arrange(desc(n))
+tickets_per_color = LAtickets %>% group_by(Color) %>%
+  summarize(n = n()) %>% arrange(desc(n))
 print(tickets_per_color)
 ```
 
@@ -188,7 +212,8 @@ print(tickets_per_color)
 5. What are the most common ticket types?
 
 ```{r}
-tickets_per_violationtype = LAtickets %>% group_by(Violation_Description) %>% summarize(n = n()) %>% arrange(desc(n))
+tickets_per_violationtype = LAtickets %>% group_by(Violation_Description) %>%
+  summarize(n = n()) %>% arrange(desc(n))
 print(tickets_per_violationtype)
 ```
 
@@ -197,7 +222,8 @@ print(tickets_per_violationtype)
 6. How much money was collected on parking tickets in 2015 and 2016?
 
 ```{r}
-money_collected_156 = LAtickets %>% filter(Issue_Year == 2015 | Issue_Year == 2016) %>% group_by(Issue_Year) %>%
+money_collected_156 = LAtickets %>%
+  filter(Issue_Year == 2015 | Issue_Year == 2016) %>% group_by(Issue_Year) %>%
   summarize(`Total Collected in Dollars` = sum(Fine_amount, na.rm = T))
 
 print(money_collected_156)
@@ -218,7 +244,10 @@ top10ticketmakes %>%
   geom_rug() +
   facet_grid(Make ~ .)
 
-topticketedmakeswithothers = LAtickets %>% select(Make, Body_Style, Fine_amount) %>% group_by(Make) %>% summarise(n = n(), Body_Style = Body_Style, Fine_amount = Fine_amount) %>% arrange(desc(n))
+topticketedmakeswithothers = LAtickets %>% 
+  select(Make, Body_Style, Fine_amount) %>% group_by(Make) %>%
+  summarise(n = n(), Body_Style = Body_Style, Fine_amount = Fine_amount) %>%
+  arrange(desc(n))
 
 top10ticketmakeswitho = collect(head(topticketedmakeswithothers, 10))
 
@@ -229,6 +258,6 @@ top10ticketmakeswitho %>% ggplot(mapping = aes(x = Fine_amount)) +
 top10ticketmakeswitho %>%
 ggplot(mapping = aes(x = Make, y = Fine_amount)) +
   geom_boxplot() +
-  labs(title = "Boxplot of", x = "Make")
+  labs(title = "Fine Amount for the Top 10 Makes", x = "Make")
 
 ```
