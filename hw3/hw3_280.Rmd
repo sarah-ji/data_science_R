@@ -1,0 +1,263 @@
+---
+title: "HW 3"
+author: "Sarah Ji"
+date: "2/20/2018"
+output: html_document
+---
+
+```{r setup, include = FALSE, echo = FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(evaluate = TRUE)
+knitr::opts_chunk$set(warning = FALSE)
+#these will be the packages required to run this program. 
+required_packages = c("data.table", "tidyr", "dplyr", "readr", "DBI",
+                      "RSQLite", "sqldf", "dbplyr", "lubridate")
+
+# this function will be checking first to see if the required packages are there or not then I'll install and load them at once.
+needed_packages <- function(requiredpackageslist){
+    package_checking <- requiredpackageslist[!(requiredpackageslist %in%
+                                            installed.packages()[, "Package"])]
+    if (length(package_checking)) 
+        install.packages(package_checking, dependencies = TRUE)
+    sapply(requiredpackageslist, require, character.only = TRUE)
+}
+
+# install and loading the required packages that are not aleady loaded
+needed_packages(required_packages)
+
+library(data.table)
+library(tidyr)
+library(dplyr)
+library(readr)
+library(DBI)
+library(RSQLite)
+library(sqldf)
+library(dbplyr)
+library(lubridate)
+library(ggstance)
+library(tidyverse)
+```
+
+## Q1 LA City Employee Payroll
+
+The `/home/m280-data/la_payroll/LA_City_Employee_Payroll.csv` file on teaching server contains payroll information of LA City employees in years 2013-2017. It was downloaded from [LA City Controller's Office](https://controllerdata.lacity.org/Payroll/City-Employee-Payroll/pazn-qyym). Make a Shiny app to facilitate exploratory data analysis. 
+
+1. For efficiency of the Shiny app, you should first pre-process, pare down, tidy, and save the data, e.g., as a compressed RDS file, to be used in the app.
+
+```{r, evaluate = FALSE, warning= FALSE, include = FALSE, echo = FALSE}
+LA_payroll = read_csv("/home/m280-data/la_payroll/LA_City_Employee_Payroll.csv")
+
+LA_payroll = LA_payroll %>% 
+select(Year, `Department Title`, `Job Class Title`, `Projected Annual Salary`,
+       `Total Payments`, `Base Pay`, `Overtime Pay`,
+       `Other Pay (Payroll Explorer)`, `Average Health Cost`,
+       `Hourly or Event Rate`, `Average Benefit Cost`,
+       `Employment Type`, `Benefits Plan`)
+
+names(LA_payroll) = c("Year", "Department_Title", "Job_Title",
+                      "Projected_Salary", "Total_Payments",
+                      "Base_Pay", "Overtime_Pay", "Other_Pay",
+                      "Average_Healthcare_Cost", "Hourly_Rate",
+                      "Average_Benefit_Cost", "Employment_Type",
+                      "Benefits_Plan")
+
+LA_payroll$Projected_Salary = parse_number(LA_payroll$Projected_Salary)
+LA_payroll$Total_Payments = parse_number(LA_payroll$Total_Payments)
+LA_payroll$Base_Pay = parse_number(LA_payroll$Base_Pay)
+LA_payroll$Overtime_Pay = parse_number(LA_payroll$Overtime_Pay)
+LA_payroll$Other_Pay = parse_number(LA_payroll$Other_Pay)
+LA_payroll$Department_Title = parse_factor(LA_payroll$Department_Title,
+                                  levels = unique(LA_payroll$Department_Title))
+LA_payroll$Average_Healthcare_Cost = parse_number(LA_payroll$Average_Healthcare_Cost)
+LA_payroll$Hourly_Rate = parse_number(LA_payroll$Hourly_Rate)
+LA_payroll$Average_Benefit_Cost = parse_number(LA_payroll$Average_Benefit_Cost)
+LA_payroll$Employment_Type = parse_factor(LA_payroll$Employment_Type,
+                                  levels = unique(LA_payroll$Employment_Type))
+LA_payroll$Job_Title = parse_factor(LA_payroll$Job_Title,
+                                    levels = unique(LA_payroll$Job_Title))
+LA_payroll$Benefits_Plan = parse_factor(LA_payroll$Benefits_Plan,
+                                    levels = unique(LA_payroll$Benefits_Plan))
+
+#automatically compressed and save it into the shiny app folder
+saveRDS(LA_payroll,
+        "~/biostat-m280-2018-winter/hw3/hw3_280_shinyapp/LA_payroll.rds")
+```
+
+**Answer**: For efficiency of the Shiny app, I have pre-processed and saved the data as a compressed RDS file to be used in the app. The compressed RDS file is saved in my directory as, LA_payroll.rds.
+
+2. **Total payroll by LA City**. Visualize the total LA City payroll of each year, with breakdown into base pay, overtime pay, and other pay.
+
+**Answer**: I have visualized the total LA City payroll by each year, with breakdown into base pay, overtime pay and other pay using stacked histograms and overlayed plots in tab 1.2 of the shiny app. 
+
+3. **Who earned most?** Visualize the payroll information (total payment with breakdown into base pay, overtime pay, and other pay, Department, Job Title) of the top $n$ highest paid LA City employees in a specific year. User specifies $n$ (default 10) and year (default 2017).
+
+**Answer**: In tab 1.3 of the shiny app, I have visualized the total LA City payroll by each year, with breakdown into base pay, overtime pay, other pay, Department title and Job Title of the top 10 highest paid LA city employees in a specified year, by default 2017. It looks like in 2013 LAPD earned the most, and in years 2014-2017 Harbor/Harbor Port of LA employees earned the most.
+
+4. **Which departments earn most?** Visualize the mean or median payroll, with breakdown into base pay, overtime pay, and other pay, of top $n$ earning departments. User specifies $n$ (default 5), year (default 2017), and method (mean or median, default median).
+
+**Answer**: In tab 1.4 of the shiny app, I visualize the mean or median payroll with breakdown into median base pay, median overtime pay, and median other pay, of top 5 earning departments in 2017, by default.
+In the years 2013-2016, the Fire Department earned the most both by median and mean. In the year 2017, the Public Accountability department earned the most by both median and mean. 
+
+5. **Which departments cost most?** Visualize the total payroll, with breakdown into base pay, overtime pay, and other pay, of top $n$ expensive departments. User specifies $n$ (default 5) and year (default 2017).
+
+**Answer**: In tab 1.5 of the shiny app, I visualize the total payroll, with breakdown into base pay, overtime pay, and other pay, of most costly departments. The Police Department LAPD is the most costly department in years 2013 - 2017. 
+
+6. Visualize any other information you are interested in.
+
+**Answer**: In tab 1.6 of the shiny app, I visualize the top departments who are paid more than their projected annual salary. In the year 2013, the LAPD exceeds their projected annual salary the most. In the years 2014 - 2017, the Fire Department exceeds their projected annual salary the most. 
+
+7. Publish your Shiny app to <https://www.shinyapps.io> and share the link.
+
+**Answer**: [My LA Payroll Shiny App Link](https://sarahji.shinyapps.io/hw3_280_shinyapp/)
+
+
+## Q2 LA City Parking War
+
+The SQLite database `/home/m280-data/la_parking/LA_Parking_Citations.sqlite` on teaching server contains information about parking tickets in LA City. It was downloaded from [LA Open Data Portal](https://data.lacity.org/A-Well-Run-City/Parking-Citations/wjz9-h9np). Connect to the database and answer following questions using plots and summary statistics. In this exercise, you are **not** allowed to load whole data into memory. Use the _transform in database, plot in R_ strategy.
+
+1. How many tickets are in this data set? Which time period do these tickets span? Which years have most data?
+
+```{r}
+SQLdbname = "/home/m280-data/la_parking/LA_Parking_Citations_Extra.sqlite"
+# con = dbConnect(RSQLite::SQLite(), SQLdbname)
+connection = dbConnect(RSQLite::SQLite(), SQLdbname)
+
+LAtickets = dplyr::tbl(connection, "latix")
+
+number_of_tickets = LAtickets %>% summarise(n = n()) %>% collect()
+number_of_tickets
+```
+
+**Answer**: There are 4,044,488 tickets in this data set than span from April 27, 2010 to December 30, 2017. 
+
+```{r}
+#which year has the most tickets?
+tickets_per_year = LAtickets %>% 
+  group_by(Issue_Year) %>% summarize(n = n()) %>% arrange(desc(n))
+print(tickets_per_year)
+```
+
+**Answer**: We have the most data for tickets issued in the years 2015 and 2016. There are 2,161,119 tickets issued in 2015, and 1,763,273 tickets issued in 2016. 
+
+2. When (which hour, weekday, month day, and month) are you most likely to get a ticket and when are you least likely to get a ticket?
+
+```{r}
+#which hour are you most likely to get a ticket?
+tickets_per_hour = LAtickets %>%
+  group_by(Issue_Hour) %>% summarize(n = n()) %>% arrange(desc(n))
+print(tickets_per_hour)
+```
+
+**Answer**: You are most likely to get a ticket at 12pm.
+
+```{r}
+#which weekday are you most likely to get a ticket?
+tickets_per_weekday = LAtickets %>% 
+  group_by(Issue_Wday) %>% summarize(n = n()) %>% arrange(desc(n))
+print(tickets_per_weekday)
+```
+
+**Answer**: You are most likely to get a ticket on the 3rd day of the week, Tuesday.
+
+```{r}
+#which month are you most likely to get a ticket?
+tickets_per_month = LAtickets %>% 
+  group_by(Issue_Month) %>% summarize(n = n()) %>% arrange(desc(n))
+print(tickets_per_month)
+
+```
+
+**Answer**: You are most likely to get a ticket on the 3rd month of the year, March. 
+
+```{r}
+#which month day are you most likely to get a ticket?
+tickets_per_monthday = LAtickets %>%
+  group_by(Issue_Day) %>% summarize(n = n()) %>% arrange(desc(n))
+print(tickets_per_monthday)
+```
+
+**Answer**: You are most likely to get a ticket on the 22nd day of the month. 
+
+3. Which car makes received most citations?
+
+```{r}
+#which make are you most likely to get a ticket?
+tickets_per_make = LAtickets %>%
+  group_by(Make) %>% summarize(n = n()) %>% arrange(desc(n))
+print(tickets_per_make)
+```
+
+**Answer**: The car make that received the most citations is Toyota.  
+
+4. How many different colors of cars were ticketed? Which color attracted most tickets?
+
+```{r}
+#how many different colors of cars were ticketed?
+number_of_colors = LAtickets %>% summarise(n = n_distinct(Color))
+print(number_of_colors)
+```
+
+**Answer**: There are 65 different colors of cars that were ticketed. 
+
+```{r}
+#which color attracted most tickets?
+tickets_per_color = LAtickets %>% group_by(Color) %>%
+  summarize(n = n()) %>% arrange(desc(n))
+print(tickets_per_color)
+```
+
+**Answer**: Black colored cars attracted the most tickets.
+
+
+5. What are the most common ticket types?
+
+```{r}
+tickets_per_violationtype = LAtickets %>% group_by(Violation_Description) %>%
+  summarize(n = n()) %>% arrange(desc(n))
+print(tickets_per_violationtype)
+```
+
+**Answer**: The top 10 most common ticket types are shown above. We see that the most common ticket type is "NO PARK/STREET CLEAN" Violation. 
+
+6. How much money was collected on parking tickets in 2015 and 2016?
+
+```{r}
+money_collected_156 = LAtickets %>%
+  filter(Issue_Year == 2015 | Issue_Year == 2016) %>% group_by(Issue_Year) %>%
+  summarize(`Total Collected in Dollars` = sum(Fine_amount, na.rm = T))
+
+print(money_collected_156)
+```
+
+**Answer**: There was 151,006,794 dollars collected in parking tickets in 2015 and 123,236,136 dollars collected in parking tickets in 2016. 
+
+7. Visualize any other information you are interested in.
+
+**Answer**: Below, I visualize the distribution of the Fine amount for the top 10 car makes. Notice for the top 10 car makes, that the most expensive makes, BMW and Mercedez have the smallest Fine amount in comparison to the other makes.  
+
+```{r}
+top10ticketmakes = collect(head(tickets_per_make, 10))
+
+top10ticketmakes %>% 
+  ggplot(mapping = aes(x = n)) +
+  geom_histogram(bins = 10) +
+  geom_rug() +
+  facet_grid(Make ~ .)
+
+topticketedmakeswithothers = LAtickets %>% 
+  select(Make, Body_Style, Fine_amount) %>% group_by(Make) %>%
+  summarise(n = n(), Body_Style = Body_Style, Fine_amount = Fine_amount) %>%
+  arrange(desc(n))
+
+top10ticketmakeswitho = collect(head(topticketedmakeswithothers, 10))
+
+top10ticketmakeswitho %>% ggplot(mapping = aes(x = Fine_amount)) +
+  geom_histogram(binwidth = 1, aes(colour = Make)) +
+  labs(title = "Fine Amounts For the Top 10 Car Makes", x = "Number of Tickets")
+
+top10ticketmakeswitho %>%
+ggplot(mapping = aes(x = Make, y = Fine_amount)) +
+  geom_boxplot() +
+  labs(title = "Fine Amount for the Top 10 Makes", x = "Make")
+
+```
