@@ -1,6 +1,6 @@
 *Sarah Ji*
 
-### Overall Grade: 98/100
+### Overall Grade: 97/100
 
 ### Quality of report: 10/10
 
@@ -20,13 +20,13 @@
 
     Yes. Good job!
 
-### Correctness and efficiency of solution: 48/50
+### Correctness and efficiency of solution: 47/50
 
 -   Q1 (25/25)
     -   7.3.4, 7.4.1, 7.5.1.1, 7.5.2.1, and 7.5.3.1.
--   Q3 (23/25)
+-   Q3 (22/25)
 
-    \#4.  You forgot to write the data to a file.
+    \#4. (-3 pts) You forgot to write the data to a file.
 
 ### Usage of Git: 10/10
 
