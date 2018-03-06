@@ -1,0 +1,243 @@
+---
+title: "hw4_280"
+author: "Sarah Ji"
+date: "3/6/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(sparkly)
+library(dplyr)
+library(ggplot2)
+```
+
+```{r}
+Sys.setenv(SPARK_HOME="/usr/lib/spark")
+config <- spark_config()
+sc <- spark_connect(master = "yarn-client", config = config)
+sc
+```
+
+
+Access hive tables
+```{r}
+# Cache flights Hive table into Spark
+#tbl_cache(sc, 'flights')
+flights_tbl <- tbl(sc, 'flights')
+
+#show what columns I have lazily
+flights_tbl %>% print(width = Inf)
+```
+
+```{r}
+# Cache airlines Hive table into Spark
+#tbl_cache(sc, 'airlines')
+airlines_tbl <- tbl(sc, 'airlines')
+airlines_tbl %>% print(width = Inf)
+```
+
+```{r}
+# Cache airports Hive table into Spark
+#tbl_cache(sc, 'airports')
+airports_tbl <- tbl(sc, 'airports')
+airports_tbl %>% print(width = Inf)
+```
+
+How many data points?
+
+```{r}
+system.time({
+out <- flights_tbl %>%
+  group_by(year) %>%
+  count() %>%
+  arrange(year) %>%
+  collect()
+})
+```
+
+Data starts around 1987 first year may not have complete data. 22 years of data. 
+
+```{r}
+out
+```
+
+Barplot of the number of data points in each year
+
+```{r}
+out %>% ggplot(aes(x = year, y = n)) + geom_col()
+```
+
+How many flights from LAX per year:
+
+```{r}
+system.time({
+out <- flights_tbl %>%
+  filter(origin == "LAX") %>%
+  group_by(year) %>%
+  count() %>%
+  arrange(year) %>%
+  collect()
+})
+```
+
+```{r}
+out
+```
+
+Number of flights taking off from LAX:
+question: what is the jump 1996 and dip in 2008
+```{r}
+out %>% ggplot(aes(x = year, y = n)) + 
+    geom_col() +
+    labs(title = "Number of flights from LAX")
+```
+
+How many flights to LAX per year:
+
+```{r}
+system.time({
+out <- flights_tbl %>%
+  filter(dest == "LAX") %>%
+  group_by(year) %>%
+  count() %>%
+  arrange(year) %>%
+  collect()
+})
+```
+
+FIT A MODEL:
+
+Suppose we want to fit a linear regression of gain (depdelay - arrdelay) on distance, departure delay, and carriers using data from 2003-2007.
+
+not collected because it will be huge!!
+```{r}
+# Filter records and create target variable 'gain'
+system.time(
+  model_data <- flights_tbl %>%
+    filter(!is.na(arrdelay) & !is.na(depdelay) & !is.na(distance)) %>%
+    filter(depdelay > 15 & depdelay < 240) %>% #filter outliers
+    filter(arrdelay > -60 & arrdelay < 360) %>% #filter outliers
+    filter(year >= 2003 & year <= 2007) %>%
+    left_join(airlines_tbl, by = c("uniquecarrier" = "code")) %>% # merge by the columns
+    mutate(gain = depdelay - arrdelay) %>%
+    select(year, month, arrdelay, depdelay, distance, uniquecarrier, description, gain)
+)
+```
+
+```{r}
+model_data
+```
+
+Get descriptive statistics: for every airline summarize gain distance depdelay
+
+```{r}
+# Summarize data by carrier
+model_data %>%
+  group_by(uniquecarrier) %>%
+  summarize(description = min(description), gain = mean(gain), 
+            distance = mean(distance), depdelay = mean(depdelay)) %>%
+  select(description, gain, distance, depdelay) %>%
+  arrange(gain)
+```
+
+**FIT LINEAR REGRESSION**
+Train a linear model
+Predict time gained or lost in flight as a function of distance, departure delay, and airline carrier.
+
+split to training and testing data
+
+```{r}
+# Partition the data into training and validation sets
+model_partition <- model_data %>% 
+  sdf_partition(train = 0.8, valid = 0.2, seed = 5555)
+
+# Fit a linear model on training data with gain as response
+system.time(
+  ml1 <- model_partition$train %>%
+    ml_linear_regression(gain ~ distance + depdelay + uniquecarrier)
+)
+
+```
+
+```{r}
+# Summarize the linear model
+summary(ml1)
+```
+
+Assess model performance
+Compare the model performance using the validation data.
+
+Apply the model partition separatately on train and test data. 
+
+```{r}
+# Calculate average gains by predicted decile
+system.time(
+  model_deciles <- lapply(model_partition, function(x) {
+    sdf_predict(ml1, x) %>%
+      mutate(decile = ntile(desc(prediction), 10)) %>%
+      group_by(decile) %>%
+      summarize(gain = mean(gain)) %>%
+      select(decile, gain) %>%
+      collect()
+  })
+)
+```
+
+```{r}
+model_deciles
+```
+
+```{r}
+# Create a summary dataset for plotting
+deciles <- rbind(
+  data.frame(data = 'train', model_deciles$train),
+  data.frame(data = 'valid', model_deciles$valid),
+  make.row.names = FALSE
+)
+deciles
+```
+
+visualize performance of the model it looks good.
+
+```{r}
+# Plot average gains by predicted decile
+deciles %>%
+  ggplot(aes(factor(decile), gain, fill = data)) +
+  geom_bar(stat = 'identity', position = 'dodge') +
+  labs(title = 'Average gain by predicted decile', x = 'Decile', y = 'Minutes')
+```
+
+Visualize predictions
+Compare actual gains to predicted gains for an out of time sample.
+
+new dataset
+```{r}
+# Select data from an out of time sample
+data_2008 <- flights_tbl %>%
+  filter(!is.na(arrdelay) & !is.na(depdelay) & !is.na(distance)) %>%
+  filter(depdelay > 15 & depdelay < 240) %>%
+  filter(arrdelay > -60 & arrdelay < 360) %>%
+  filter(year == 2008) %>%
+  left_join(airlines_tbl, by = c("uniquecarrier" = "code")) %>%
+  mutate(gain = depdelay - arrdelay) %>%
+  select(year, month, arrdelay, depdelay, distance, uniquecarrier, description, gain, origin, dest)
+data_2008
+```
+
+for each airline plot the predicted vs actual values of gain. southwest and united wait.
+delta is good. 
+
+```{r}
+# Plot actual gains and predicted gains by airline carrier
+ggplot(carrier, aes(gain, prediction)) + 
+  geom_point(alpha = 0.75, color = 'red', shape = 3) +
+  geom_abline(intercept = 0, slope = 1, alpha = 0.15, color = 'blue') +
+  geom_text(aes(label = substr(description, 1, 20)), size = 3, alpha = 0.75, vjust = -1) +
+  labs(title='Average Gains Forecast', x = 'Actual', y = 'Predicted')
+```
+
+```{r}
+spark_disconnect_all()
+```
+
