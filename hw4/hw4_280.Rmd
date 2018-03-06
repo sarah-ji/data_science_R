@@ -6,6 +6,7 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
+#http://35.185.198.142:8787/
 knitr::opts_chunk$set(echo = TRUE)
 library(sparkly)
 library(dplyr)
