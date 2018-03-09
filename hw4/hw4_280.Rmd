@@ -36,7 +36,7 @@ world = map_data("world")
 ```{r}
 Sys.setenv(SPARK_HOME="/usr/lib/spark")
 config <- spark_config()
-sc <- spark_connect(master = "local", config = config)
+sc <- spark_connect(master = "yarn-client", config = config)
 ```
 
 Access hive tables
@@ -139,17 +139,16 @@ filter(!is.na(arrdelay) & !is.na(depdelay) & !is.na(distance) & (cancelled == 0)
   group_by(dest) %>% summarise(n_dest = count()) %>%
 arrange(desc(n_dest)) %>% collect()
 
-LAX = LAX %>% mutate( if(month %in% c(3:5)){season = "Spring"}
+LAXwithseason = flights_tbl %>% filter((dest == "LAX" | origin = "LAX") & cancelled == 0 & !is.na(distance)) %>% mutate( if(month %in% c(3:5)){season = "Spring"}
                       else if(month %in% c(6:8)){season = "Summer"}
                       else if(month %in% c(9:11)){season = "Autumn"}
                       else if(month %in% c(12, 1, 2)){season = "Winter"})
 
 
-LAXdest <- flights_tbl %>% filter(dest == "LAX" & cancelled == 0 & !is.na(distance)) %>%
-  group_by(year) %>% summarise(n_peryeardest = count()) %>% arrange(desc(year)) %>% collect()
+LAXseason <- LAXwithseason %>% group_by(season) %>% count() %>% collect()
 
 LAX2 <- flights_tbl %>%
-  filter((dest == "LAX" | origin == "LAX") & (cancelled == 0)) %>% select(year, month, dayofweek) %>%
+  filter((dest == "LAX" | origin == "LAX") & (cancelled == 0) & !is.na(distance)) %>% 
   group_by(dayofweek) %>% summarise(n_weekday = n()) %>% arrange(desc(n_weekday)) %>% collect()
 ```
 
