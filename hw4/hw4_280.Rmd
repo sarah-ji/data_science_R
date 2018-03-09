@@ -79,9 +79,9 @@ flightzorigin = flights_tbl %>% filter(cancelled==0) %>% select(origin, dest, ca
 group_by(origin) %>% summarise(n_origin = count()) %>%
 arrange(desc(n_origin)) %>% collect()
 
-flightstotal = left_join(flightzorigin, flightzz, by = c("origin" = "dest")) %>% mutate(N = n_origin + n_dest) %>% arrange(desc(N))
+flightstotal = left_join(flightzorigin, flightzz, by = c("origin" = "dest")) %>% mutate(N = (n_origin + n_dest)/1000000) %>% arrange(desc(N))
 
-names(flightstotal) = c("Airport", "n_origin", "n_dest", "Total Flights (N)")
+names(flightstotal) = c("Airport", "n_origin", "n_dest", "Total Flights (in millions)")
 top10busiestAirports = flightstotal$Airport[1:10]
 
 flights_cleanOrigin <- flights_tbl %>%
@@ -114,9 +114,6 @@ top10busiestLatLong2 = left_join(flightstotal, top10busiestLatLong, by = c("Airp
 ```
 
 ```{r}
-ggplot() + geom_polygon(data = usa, aes(x = long, y = lat, group = group), fill = "lavender", color = "blue") + 
-coord_fixed(1.3) 
-
 ggplot() + 
       geom_polygon(data = usa, aes(x = long, y = lat), fill = "lavender", color = "blue") + 
       geom_point(data = top10busiestLatLong2, aes(x = Longitude, y = Latitude), color = "black", size = 5) +
@@ -129,14 +126,19 @@ ggplot() +
 states = map_data("state")
 ggplot() + 
       geom_polygon(data = states, aes(x = long, y = lat, fill = region, group = group), color = "white") + 
-      geom_point(data = top10busiestLatLong2, aes(x = Longitude, y = Latitude, size = `Total Flights (N)`), color = "black") +
-      geom_point(data = top10busiestLatLong2, aes(x = Longitude, y = Latitude, size = `Total Flights (N)`), color = "chartreuse") +
-      scale_size(name = "Total Flights (N)", range = c(1,5)) +
+      geom_point(data = top10busiestLatLong2, aes(x = Longitude, y = Latitude, size = `Total Flights (in millions)`), color = "black") +
+      geom_point(data = top10busiestLatLong2, aes(x = Longitude, y = Latitude, size = `Total Flights (in millions)`), color = "chartreuse") +
+      #geom_text(aes(x = Longitude, y = Latitude, label = as.character(top10busiestAirports)), check_overlap = TRUE) +
+      scale_size(name = "Total Flights (in millions)", range = c(1, 5)) +
       labs(x = "Longitude", y = "Latitude", title = "Top 10 Busiest Airports in USA") +
       coord_fixed(1.5)
+
 ```
 
 
+```{r}
+
+```
 
 
 
