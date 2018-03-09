@@ -8,18 +8,36 @@ output: html_document
 ```{r setup, include=FALSE}
 #http://35.185.198.142:8787/
 knitr::opts_chunk$set(echo = TRUE)
-library(sparkly)
+library(sparklyr)
 library(dplyr)
 library(ggplot2)
+# these are packages you will need, but probably already have.
+# Don't bother installing if you already have them
+#install.packages(c("ggplot2", "devtools", "dplyr", "stringr"))
+
+# some standard map packages.
+#install.packages(c("maps", "mapdata"))
+
+# the github version of ggmap, which recently pulled in a small fix I had
+# for a bug 
+devtools::install_github("dkahle/ggmap")
+library(ggplot2)
+library(ggmap)
+library(maps)
+library(mapdata)
 ```
+
+```{r}
+usa = map_data("usa")
+world = map_data("world")
+```
+
 
 ```{r}
 Sys.setenv(SPARK_HOME="/usr/lib/spark")
 config <- spark_config()
-sc <- spark_connect(master = "yarn-client", config = config)
-sc
+sc <- spark_connect(master = "local", config = config)
 ```
-
 
 Access hive tables
 ```{r}
@@ -28,34 +46,65 @@ Access hive tables
 flights_tbl <- tbl(sc, 'flights')
 
 #show what columns I have lazily
-flights_tbl %>% print(width = Inf)
+#flights_tbl %>% print(width = Inf)
 ```
 
 ```{r}
 # Cache airlines Hive table into Spark
 #tbl_cache(sc, 'airlines')
 airlines_tbl <- tbl(sc, 'airlines')
-airlines_tbl %>% print(width = Inf)
+#airlines_tbl %>% print(width = Inf)
 ```
 
 ```{r}
 # Cache airports Hive table into Spark
 #tbl_cache(sc, 'airports')
 airports_tbl <- tbl(sc, 'airports')
-airports_tbl %>% print(width = Inf)
+#airports_tbl %>% print(width = Inf)
 ```
 
-How many data points?
+Map the top 10 busiest airports. Size of dots should reflect the number of flights through that destination.
+Hint: You may find this tutorial on Making Maps in R helpful.
 
 ```{r}
-system.time({
-out <- flights_tbl %>%
-  group_by(year) %>%
-  count() %>%
-  arrange(year) %>%
-  collect()
-})
+flightzz <- flights_tbl %>% select(year, uniquecarrier, flightnum, origin, dest, cancelled) %>% collect()
+
+flightzz <- flights_tbl %>% select(year, arrdelay, depdelay, distance, uniquecarrier, flightnum, origin, dest, cancelled) %>% collect()
+
+flightzz = flights_tbl %>% filter(cancelled == 0) %>% select(origin, dest, cancelled) %>%
+group_by(dest) %>% summarise(n_dest = count()) %>%
+arrange(desc(n_dest)) %>% collect()
+
+flightzorigin = flights_tbl %>% filter(cancelled==0) %>% select(origin, dest, cancelled) %>%
+group_by(origin) %>% summarise(n_origin = count()) %>%
+arrange(desc(n_origin)) %>% collect()
+
+flightstotal = left_join(flightzorigin, flightzz, by = c("origin" = "dest")) %>% mutate(N = n_origin + n_dest) %>% arrange(desc(N))
+
+flights_cleanOrigin <- flights_tbl %>%
+filter(!is.na(arrdelay) & !is.na(depdelay) & !is.na(distance) & (cancelled == 0)) %>%
+  filter(depdelay > 15 & depdelay < 240) %>%
+  filter(arrdelay > -60 & arrdelay < 360) %>% 
+  group_by(origin) %>% summarise(n_origin = count()) %>%
+arrange(desc(n_origin)) %>% collect()
+
+flights_clean <- flights_tbl %>%
+filter(!is.na(arrdelay) & !is.na(depdelay) & !is.na(distance) & (cancelled == 0)) %>%
+  filter(depdelay > 15 & depdelay < 240) %>%
+  filter(arrdelay > -60 & arrdelay < 360) %>% 
+  group_by(dest) %>% summarise(n_dest = count()) %>%
+arrange(desc(n_dest)) %>% collect()
+  
 ```
+
+```{r}
+airlinez <- airlines_tbl %>% collect()
+```
+
+```{r}
+airportz <- airports_tbl %>% group_by(faa) %>% collect()
+```
+
 
 Data starts around 1987 first year may not have complete data. 22 years of data. 
 
@@ -69,17 +118,19 @@ Barplot of the number of data points in each year
 out %>% ggplot(aes(x = year, y = n)) + geom_col()
 ```
 
-How many flights from LAX per year:
+
 
 ```{r}
-system.time({
-out <- flights_tbl %>%
-  filter(origin == "LAX") %>%
-  group_by(year) %>%
-  count() %>%
-  arrange(year) %>%
-  collect()
-})
+origin_airports <- flights_tbl %>%
+  group_by(origin) %>%
+  mutate(n1 = n()) %>% collect()
+
+destination_airports <- flights_tbl %>%
+  group_by(dest) %>%
+  mutate(n2 = n()) %>% collect()
+
+
+destination_airports %>% left_join(origin_airports, by = "flightnum") %>% mutate(n = n1 + n2)
 ```
 
 ```{r}
