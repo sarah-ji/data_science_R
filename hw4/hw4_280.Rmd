@@ -84,19 +84,7 @@ flightstotal = left_join(flightzorigin, flightzz, by = c("origin" = "dest")) %>%
 names(flightstotal) = c("Airport", "n_origin", "n_dest", "Total Flights (in millions)")
 top10busiestAirports = flightstotal$Airport[1:10]
 
-flights_cleanOrigin <- flights_tbl %>%
-filter(!is.na(arrdelay) & !is.na(depdelay) & !is.na(distance) & (cancelled == 0)) %>%
-  filter(depdelay > 15 & depdelay < 240) %>%
-  filter(arrdelay > -60 & arrdelay < 360) %>% 
-  group_by(origin) %>% summarise(n_origin = count()) %>%
-arrange(desc(n_origin)) %>% collect()
 
-flights_clean <- flights_tbl %>%
-filter(!is.na(arrdelay) & !is.na(depdelay) & !is.na(distance) & (cancelled == 0)) %>%
-  filter(depdelay > 15 & depdelay < 240) %>%
-  filter(arrdelay > -60 & arrdelay < 360) %>% 
-  group_by(dest) %>% summarise(n_dest = count()) %>%
-arrange(desc(n_dest)) %>% collect()
   
 ```
 
@@ -137,7 +125,32 @@ ggplot() +
 
 
 ```{r}
+flights_cleanOrigin <- flights_tbl %>%
+filter(!is.na(arrdelay) & !is.na(depdelay) & !is.na(distance) & (cancelled == 0)) %>%
+  filter(depdelay > 15 & depdelay < 240) %>%
+  filter(arrdelay > -60 & arrdelay < 360) %>% 
+  group_by(origin) %>% summarise(n_origin = count()) %>%
+arrange(desc(n_origin)) %>% collect()
 
+flights_clean <- flights_tbl %>%
+filter(!is.na(arrdelay) & !is.na(depdelay) & !is.na(distance) & (cancelled == 0)) %>%
+  filter(depdelay > 15 & depdelay < 240) %>%
+  filter(arrdelay > -60 & arrdelay < 360) %>% 
+  group_by(dest) %>% summarise(n_dest = count()) %>%
+arrange(desc(n_dest)) %>% collect()
+
+LAX = LAX %>% mutate( if(month %in% c(3:5)){season = "Spring"}
+                      else if(month %in% c(6:8)){season = "Summer"}
+                      else if(month %in% c(9:11)){season = "Autumn"}
+                      else if(month %in% c(12, 1, 2)){season = "Winter"})
+
+
+LAXdest <- flights_tbl %>% filter(dest == "LAX" & cancelled == 0 & !is.na(distance)) %>%
+  group_by(year) %>% summarise(n_peryeardest = count()) %>% arrange(desc(year)) %>% collect()
+
+LAX2 <- flights_tbl %>%
+  filter((dest == "LAX" | origin == "LAX") & (cancelled == 0)) %>% select(year, month, dayofweek) %>%
+  group_by(dayofweek) %>% summarise(n_weekday = n()) %>% arrange(desc(n_weekday)) %>% collect()
 ```
 
 
