@@ -81,6 +81,9 @@ arrange(desc(n_origin)) %>% collect()
 
 flightstotal = left_join(flightzorigin, flightzz, by = c("origin" = "dest")) %>% mutate(N = n_origin + n_dest) %>% arrange(desc(N))
 
+names(flightstotal) = c("Airport", "n_origin", "n_dest", "Total Flights (N)")
+top10busiestAirports = flightstotal$Airport[1:10]
+
 flights_cleanOrigin <- flights_tbl %>%
 filter(!is.na(arrdelay) & !is.na(depdelay) & !is.na(distance) & (cancelled == 0)) %>%
   filter(depdelay > 15 & depdelay < 240) %>%
@@ -96,6 +99,41 @@ filter(!is.na(arrdelay) & !is.na(depdelay) & !is.na(distance) & (cancelled == 0)
 arrange(desc(n_dest)) %>% collect()
   
 ```
+
+```{r}
+ggplot() + geom_polygon(data = usa, aes(x = long, y = lat, group = group), fill = "lavender", color = "blue") + 
+coord_fixed(1.3) 
+```
+
+```{r}
+top10busiestLatLong = airportz %>% 
+filter(faa %in% top10busiestAirports) %>% 
+select(AirportID = faa, Airport = name, Latitude = lat, Longitude = lon) %>% collect()
+
+top10busiestLatLong2 = left_join(flightstotal, top10busiestLatLong, by = c("Airport" = "AirportID")) %>% filter(!is.na(Latitude)) %>% mutate(Latitude = as.numeric(Latitude), Longitude = as.numeric(Longitude))
+```
+
+```{r}
+ggplot() + geom_polygon(data = usa, aes(x = long, y = lat, group = group), fill = "lavender", color = "blue") + 
+coord_fixed(1.3) 
+
+ggplot() + 
+      geom_polygon(data = usa, aes(x = long, y = lat), fill = "lavender", color = "blue") + 
+      geom_point(data = top10busiestLatLong2, aes(x = Longitude, y = Latitude), color = "black", size = 5) +
+      geom_point(data = top10busiestLatLong2, aes(x = Longitude, y = Latitude), color = "chartreuse", size = 4) +
+      coord_fixed(1.3)
+```
+
+
+
+
+
+
+
+
+
+
+
 
 ```{r}
 airlinez <- airlines_tbl %>% collect()
