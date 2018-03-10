@@ -137,26 +137,51 @@ filter(faa %in% c(top10traveledpathDestination, top10traveledpathOrigin)) %>%
 select(Airport = faa, Latitude = lat, Longitude = lon) %>% collect()
 
 top10busiestpath = jointpath[1:10, ] 
+top10busiestpath$pairnumber = c(1:10)
 
 top10buspathwithlatlong1 = left_join(top10busiestpath, pathlatitudelongitude, by = c("dest" = "Airport"))
 top10buspathwithlatlong2 = left_join(top10busiestpath, pathlatitudelongitude, by = c("origin" = "Airport"))
 
 top10busiestpathLL = full_join(top10buspathwithlatlong1, top10buspathwithlatlong2, by = "n_jointpath")
-
-top10busiestpathLL = top10busiestpathLL[,-c(6:7)]
-names(top10busiestpathLL) = c("Destination", "Origin", "N_path", "Lat.D", "Long.D", "Lat.O", "Long.O")
+testlong = bind_rows(top10buspathwithlatlong1, top10buspathwithlatlong2)
 
 
-final_top10pathLL = top10busiestpathLL %>%
-mutate(Latitude_Destination = as.numeric(Lat.D), Longitude_Destination = as.numeric(Long.D), Latitude_Origin = as.numeric(Lat.O), Longitude_Origin = as.numeric(Long.O))
+#top10busiestpathLL = top10busiestpathLL[,-c(7:9)]
+#names(top10busiestpathLL) = c("Destination", "Origin", "N_path", "Path", "Lat.D", "Long.D", "Lat.O", "Long.O")
 
-final10pathLatLong = final_top10pathLL[, -c(4:7)]
+
+long10busypath = test33 %>%
+mutate(Latitudes = as.numeric(Latitude), Longitudes = as.numeric(Longitude)) %>% select(Destination = dest, Origin = origin, N_path = n_jointpath, routenumber = pairnumber, Latitudes, Longitudes)
+
+
+ggplot() + 
+geom_polygon(data = usa, 
+aes(x = long, y = lat, group = group), 
+fill = "lavender", color = "blue") +
+coord_fixed(1.3) + 
+geom_point(data = long10busypath, aes(x = Longitudes, y = Latitudes), color = "black") + 
+geom_line(data = long10busypath, aes(x = Longitudes, y = Latitudes, group = routenumber, lwd = as.factor(routenumber),
+color = as.factor(routenumber)), show.legend = F,
+alpha = 0.4) +
+labs(title = "Map of Top 10 Busiest Routes", 
+x = "Longitude (Degrees)", y = "Latitude (Degrees)")
+
 
 ```
 
 
+```{r}
+LAXflightsbyday = flights_tbl %>% 
+  filter(cancelled == 0, origin == "LAX" | dest == "LAX", year >= 1998) %>%
+group_by(year, month, dayofmonth) %>% summarise(n1 = count()) %>% collect()
+```
 
 ```{r}
+
+```
+
+
+```{r, evaluate = FALSE, include = FALSE, echo = FALSE}
 flights_cleanOrigin <- flights_tbl %>%
 filter(!is.na(arrdelay) & !is.na(depdelay) & !is.na(distance) & (cancelled == 0)) %>%
   filter(depdelay > 15 & depdelay < 240) %>%
@@ -384,6 +409,6 @@ ggplot(carrier, aes(gain, prediction)) +
 ```
 
 ```{r}
-spark_disconnect_all()
+#spark_disconnect_all()
 ```
 
