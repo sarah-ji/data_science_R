@@ -124,6 +124,9 @@ ggplot() +
 
 ```
 
+2. Map the top 10 busiest direct routes. Size of lines should reflect the number of flights through that route.
+
+
 ```{r}
 jointpath = flights_tbl %>% filter(cancelled==0 & !is.na(dest) & !is.na(origin)) %>% 
 group_by(dest, origin) %>% summarise(n_jointpath = count()) %>%
@@ -165,9 +168,35 @@ color = as.factor(routenumber)), show.legend = F,
 alpha = 0.4) +
 labs(title = "Map of Top 10 Busiest Routes", 
 x = "Longitude (Degrees)", y = "Latitude (Degrees)")
+```
 
+3. 
+(a). Reproduce above plot. Visualize and explain some prominent features you observe. For example, what happened at points 1-5?
+
+```{r}
 
 ```
+
+
+(b). Visualize and explain seasonal effects.
+
+```{r}
+LAXflightsbyday = flights_tbl %>% 
+  filter(cancelled == 0, origin == "LAX" | dest == "LAX", year >= 1998) %>%
+group_by(year, month, dayofmonth) %>% summarise(n1 = count()) %>% collect()
+
+LAXwithseason = flights_tbl %>% filter((dest == "LAX" | origin = "LAX") & cancelled == 0 & !is.na(distance)) %>% 
+  mutate(if(month %in% c(3:5)){season = "Spring"}
+                      if(month %in% c(6:8)){season = "Summer"}
+                      if(month %in% c(9:11)){season = "Autumn"}
+                      if(month %in% c(12, 1, 2)){season = "Winter"} %>% group_by(season) %>% summarise(n_season = count()) %>% collect()
+
+
+LAXseason <- LAXwithseason %>% group_by(season) %>% count() %>% collect()
+```
+
+
+(c). Visualize and explain weekly effects.
 
 
 ```{r}
@@ -176,8 +205,36 @@ LAXflightsbyday = flights_tbl %>%
 group_by(year, month, dayofmonth) %>% summarise(n1 = count()) %>% collect()
 ```
 
-```{r}
 
+(d). Map top 10 destinations from LAX. Size of dots should reflect the number of flights from LAX to that destination.
+
+
+
+```{r}
+fromLAX = flights_tbl %>% 
+  filter(cancelled == 0, origin == "LAX", year >= 1998) %>%
+group_by(dest) %>% summarise(n_fromLAX = count()) %>% collect()
+
+top10destfromLAXnames = fromLAX$dest[1:10]
+top10destfromLAX = fromLAX[1:10,]
+```
+
+```{r}
+top10destLAXLatLong = airportz %>% 
+filter(faa %in% top10destfromLAXnames) %>% 
+select(AirportID = faa, Airport = name, Latitude = lat, Longitude = lon) %>% collect()
+
+top10fromLaxLatLong2 = left_join(top10destfromLAX, top10destLAXLatLong, by = c("dest" = "AirportID")) %>% filter(!is.na(Latitude)) %>% mutate(Latitude = as.numeric(Latitude), Longitude = as.numeric(Longitude))
+
+states = map_data("state")
+ggplot() + 
+      geom_polygon(data = states, aes(x = long, y = lat, fill = region, group = group), color = "white") + 
+      geom_point(data = top10fromLaxLatLong2, aes(x = Longitude, y = Latitude, size = `n_fromLAX`), color = "black") +
+      geom_point(data = top10fromLaxLatLong2, aes(x = Longitude, y = Latitude, size = `n_fromLAX`), color = "chartreuse") +
+      #geom_text(aes(x = Longitude, y = Latitude, label = as.character(top10busiestAirports)), check_overlap = TRUE) +
+      scale_size(name = "n_fromLAX", range = c(1, 5)) +
+      labs(x = "Longitude", y = "Latitude", title = "Top 10 Destinations from LAX") +
+      coord_fixed(1.5)
 ```
 
 
@@ -216,30 +273,30 @@ LAX2 <- flights_tbl %>%
 
 
 
-```{r}
+```{r, evaluate = FALSE, include = FALSE, echo = FALSE}
 airlinez <- airlines_tbl %>% collect()
 ```
 
-```{r}
+```{r, evaluate = FALSE, include = FALSE, echo = FALSE}
 airportz <- airports_tbl %>% group_by(faa) %>% collect()
 ```
 
 
 Data starts around 1987 first year may not have complete data. 22 years of data. 
 
-```{r}
+```{r, evaluate = FALSE, include = FALSE, echo = FALSE}
 out
 ```
 
 Barplot of the number of data points in each year
 
-```{r}
+```{r, evaluate = FALSE, include = FALSE, echo = FALSE}
 out %>% ggplot(aes(x = year, y = n)) + geom_col()
 ```
 
 
 
-```{r}
+```{r, evaluate = FALSE, include = FALSE, echo = FALSE}
 origin_airports <- flights_tbl %>%
   group_by(origin) %>%
   mutate(n1 = n()) %>% collect()
@@ -252,13 +309,13 @@ destination_airports <- flights_tbl %>%
 destination_airports %>% left_join(origin_airports, by = "flightnum") %>% mutate(n = n1 + n2)
 ```
 
-```{r}
+```{r, evaluate = FALSE, include = FALSE, echo = FALSE}
 out
 ```
 
 Number of flights taking off from LAX:
 question: what is the jump 1996 and dip in 2008
-```{r}
+```{r, evaluate = FALSE, include = FALSE, echo = FALSE}
 out %>% ggplot(aes(x = year, y = n)) + 
     geom_col() +
     labs(title = "Number of flights from LAX")
@@ -266,7 +323,7 @@ out %>% ggplot(aes(x = year, y = n)) +
 
 How many flights to LAX per year:
 
-```{r}
+```{r, evaluate = FALSE, include = FALSE, echo = FALSE}
 system.time({
 out <- flights_tbl %>%
   filter(dest == "LAX") %>%
@@ -282,7 +339,7 @@ FIT A MODEL:
 Suppose we want to fit a linear regression of gain (depdelay - arrdelay) on distance, departure delay, and carriers using data from 2003-2007.
 
 not collected because it will be huge!!
-```{r}
+```{r, evaluate = FALSE, include = FALSE, echo = FALSE}
 # Filter records and create target variable 'gain'
 system.time(
   model_data <- flights_tbl %>%
@@ -296,13 +353,13 @@ system.time(
 )
 ```
 
-```{r}
+```{r, evaluate = FALSE, include = FALSE, echo = FALSE}
 model_data
 ```
 
 Get descriptive statistics: for every airline summarize gain distance depdelay
 
-```{r}
+```{r, evaluate = FALSE, include = FALSE, echo = FALSE}
 # Summarize data by carrier
 model_data %>%
   group_by(uniquecarrier) %>%
@@ -318,7 +375,7 @@ Predict time gained or lost in flight as a function of distance, departure delay
 
 split to training and testing data
 
-```{r}
+```{r, evaluate = FALSE, include = FALSE, echo = FALSE}
 # Partition the data into training and validation sets
 model_partition <- model_data %>% 
   sdf_partition(train = 0.8, valid = 0.2, seed = 5555)
@@ -333,7 +390,7 @@ system.time(
 
 ```{r}
 # Summarize the linear model
-summary(ml1)
+#summary(ml1)
 ```
 
 Assess model performance
@@ -341,7 +398,7 @@ Compare the model performance using the validation data.
 
 Apply the model partition separatately on train and test data. 
 
-```{r}
+```{r, evaluate = FALSE, include = FALSE, echo = FALSE}
 # Calculate average gains by predicted decile
 system.time(
   model_deciles <- lapply(model_partition, function(x) {
@@ -355,11 +412,11 @@ system.time(
 )
 ```
 
-```{r}
+```{r, evaluate = FALSE, include = FALSE, echo = FALSE}
 model_deciles
 ```
 
-```{r}
+```{r, evaluate = FALSE, include = FALSE, echo = FALSE}
 # Create a summary dataset for plotting
 deciles <- rbind(
   data.frame(data = 'train', model_deciles$train),
@@ -371,7 +428,7 @@ deciles
 
 visualize performance of the model it looks good.
 
-```{r}
+```{r, evaluate = FALSE, include = FALSE, echo = FALSE}
 # Plot average gains by predicted decile
 deciles %>%
   ggplot(aes(factor(decile), gain, fill = data)) +
@@ -383,7 +440,7 @@ Visualize predictions
 Compare actual gains to predicted gains for an out of time sample.
 
 new dataset
-```{r}
+```{r, evaluate = FALSE, include = FALSE, echo = FALSE}
 # Select data from an out of time sample
 data_2008 <- flights_tbl %>%
   filter(!is.na(arrdelay) & !is.na(depdelay) & !is.na(distance)) %>%
@@ -399,7 +456,7 @@ data_2008
 for each airline plot the predicted vs actual values of gain. southwest and united wait.
 delta is good. 
 
-```{r}
+```{r, evaluate = FALSE, include = FALSE, echo = FALSE}
 # Plot actual gains and predicted gains by airline carrier
 ggplot(carrier, aes(gain, prediction)) + 
   geom_point(alpha = 0.75, color = 'red', shape = 3) +
@@ -408,7 +465,7 @@ ggplot(carrier, aes(gain, prediction)) +
   labs(title='Average Gains Forecast', x = 'Actual', y = 'Predicted')
 ```
 
-```{r}
+```{r, evaluate = FALSE, include = FALSE, echo = FALSE}
 #spark_disconnect_all()
 ```
 
