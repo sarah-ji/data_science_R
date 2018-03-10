@@ -34,9 +34,9 @@ world = map_data("world")
 
 
 ```{r}
-Sys.setenv(SPARK_HOME="/usr/lib/spark")
-config <- spark_config()
-sc <- spark_connect(master = "yarn-client", config = config)
+#Sys.setenv(SPARK_HOME="/usr/lib/spark")
+#config <- spark_config()
+#sc <- spark_connect(master = "yarn-client", config = config)
 ```
 
 Access hive tables
@@ -69,7 +69,6 @@ Hint: You may find this tutorial on Making Maps in R helpful.
 ```{r}
 #flightzz <- flights_tbl %>% select(year, uniquecarrier, flightnum, origin, dest, cancelled) %>% collect()
 
-#flightzz <- flights_tbl %>% select(year, arrdelay, depdelay, distance, uniquecarrier, flightnum, origin, dest, cancelled) %>% collect()
 
 flightzdest = flights_tbl %>% filter(cancelled == 0) %>% select(origin, dest) %>%
 group_by(dest) %>% summarise(n_dest = count()) %>%
@@ -168,6 +167,19 @@ color = as.factor(routenumber)), show.legend = F,
 alpha = 0.4) +
 labs(title = "Map of Top 10 Busiest Routes", 
 x = "Longitude (Degrees)", y = "Latitude (Degrees)")
+
+
+write.csv(file = "~/biostat-m280-2018-winter/hw4/top10busiestpaths.csv", long10busypath, row.names = FALSE) 
+write.csv(file = "~/biostat-m280-2018-winter/hw4/top10busiestAirports.csv", top10busiestLatLong2, row.names = FALSE) 
+write.csv(file = "~/biostat-m280-2018-winter/hw4/LAXflightsbyday", LAXflightsbyday, row.names = FALSE) 
+write.csv(file = "~/biostat-m280-2018-winter/hw4/completetoppath.csv", jointpath, row.names = FALSE) 
+write.csv(file = "~/biostat-m280-2018-winter/hw4/airlines.csv", airlinez, row.names = FALSE) 
+write.csv(file = "~/biostat-m280-2018-winter/hw4/airports.csv", airportz, row.names = FALSE) 
+write.csv(file = "~/biostat-m280-2018-winter/hw4/weekdaysLAX.csv", LAX2, row.names = FALSE) 
+write.csv(file = "~/biostat-m280-2018-winter/hw4/airports.csv", airportz, row.names = FALSE) 
+write.csv(file = "~/biostat-m280-2018-winter/hw4/modeldataHua.csv", model_data, row.names = FALSE) 
+write.csv(file = "~/biostat-m280-2018-winter/hw4/modeldataME.csv", my_model_data, row.names = FALSE) 
+
 ```
 
 3. 
@@ -239,19 +251,6 @@ ggplot() +
 
 
 ```{r, evaluate = FALSE, include = FALSE, echo = FALSE}
-flights_cleanOrigin <- flights_tbl %>%
-filter(!is.na(arrdelay) & !is.na(depdelay) & !is.na(distance) & (cancelled == 0)) %>%
-  filter(depdelay > 15 & depdelay < 240) %>%
-  filter(arrdelay > -60 & arrdelay < 360) %>% 
-  group_by(origin) %>% summarise(n_origin = count()) %>%
-arrange(desc(n_origin)) %>% collect()
-
-flights_clean <- flights_tbl %>%
-filter(!is.na(arrdelay) & !is.na(depdelay) & !is.na(distance) & (cancelled == 0)) %>%
-  filter(depdelay > 15 & depdelay < 240) %>%
-  filter(arrdelay > -60 & arrdelay < 360) %>% 
-  group_by(dest) %>% summarise(n_dest = count()) %>%
-arrange(desc(n_dest)) %>% collect()
 
 LAXwithseason = flights_tbl %>% filter((dest == "LAX" | origin = "LAX") & cancelled == 0 & !is.na(distance)) %>% mutate( if(month %in% c(3:5)){season = "Spring"}
                       else if(month %in% c(6:8)){season = "Summer"}
@@ -266,8 +265,51 @@ LAX2 <- flights_tbl %>%
   group_by(dayofweek) %>% summarise(n_weekday = n()) %>% arrange(desc(n_weekday)) %>% collect()
 ```
 
+```{r}
+flightzz <- flights_tbl %>% select(year, arrdelay, depdelay, distance, uniquecarrier, flightnum, origin, dest, cancelled) %>% collect()
+
+model_data <- flights_tbl %>%
+    filter(!is.na(arrdelay) & !is.na(depdelay) & !is.na(distance) & (dest == "LAX" | origin == "LAX") & (cancelled == 0)) %>%
+    filter(depdelay > 15 & depdelay < 240) %>% #filter outliers
+    filter(arrdelay > -60 & arrdelay < 360) %>% #filter outliers
+    filter(year >= 2003 & year <= 2007) %>%
+    left_join(airlines_tbl, by = c("uniquecarrier" = "code")) %>% # merge by the columns
+    mutate(gain = depdelay - arrdelay) %>%
+    select(year, month, arrdelay, depdelay, distance, uniquecarrier, description, gain) %>% collect()
 
 
+sumstat_modeldata = 
+  model_data %>%
+  group_by(uniquecarrier) %>%
+  summarize(description = min(description), gain = mean(gain), 
+            distance = mean(distance), depdelay = mean(depdelay)) %>%
+  select(description, gain, distance, depdelay) %>%
+  arrange(gain)
+```
+
+```{r}
+# Partition the data into training and validation sets
+model_partition <- model_data %>% 
+  sdf_partition(train = 0.8, valid = 0.2, seed = 51738)
+
+# Fit a linear model
+
+ml1 <- model_partition$train %>%
+    ml_linear_regression(gain ~ distance + depdelay + uniquecarrier)
+
+  
+```
+
+```{r}
+model_deciles <- lapply(model_partition, function(x) {
+    sdf_predict(ml1, x) %>%
+      mutate(decile = ntile(desc(prediction), 10)) %>%
+      group_by(decile) %>%
+      summarize(gain = mean(gain)) %>%
+      select(decile, gain) %>%
+      collect()
+  })
+```
 
 
 
@@ -293,6 +335,7 @@ Barplot of the number of data points in each year
 ```{r, evaluate = FALSE, include = FALSE, echo = FALSE}
 out %>% ggplot(aes(x = year, y = n)) + geom_col()
 ```
+
 
 
 
@@ -324,14 +367,21 @@ out %>% ggplot(aes(x = year, y = n)) +
 How many flights to LAX per year:
 
 ```{r, evaluate = FALSE, include = FALSE, echo = FALSE}
-system.time({
+
 out <- flights_tbl %>%
-  filter(dest == "LAX") %>%
+  filter(dest == "LAX") %>% select(year, month, dayofmonth, dayofweek, uniquecarrier, airtime, arrdelay, depdelay, origin, dest, distance,cancelled,cancellationcode, diverted, carrierdelay, weatherdelay, nasdelay, securitydelay, lateaircraftdelay)
   group_by(year) %>%
   count() %>%
   arrange(year) %>%
   collect()
-})
+  
+    my_model_data <- flights_tbl %>%
+    filter(!is.na(arrdelay) & !is.na(depdelay) & !is.na(distance) & cancelled == 0) %>%
+    filter(depdelay > 15 & depdelay < 240) %>% #filter outliers
+    filter(arrdelay > -60 & arrdelay < 360) %>% #filter outliers
+    filter(year >= 2003 & year <= 2007) %>%
+    select(dayofweek, airtime, origin, dest, diverted, carrierdelay, weatherdelay, securitydelay) %>% collect()
+    
 ```
 
 FIT A MODEL:

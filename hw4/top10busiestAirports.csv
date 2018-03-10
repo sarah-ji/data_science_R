@@ -1,0 +1,11 @@
+"Airport","n_origin","n_dest","Total Flights (in millions)","Airport.y","Latitude","Longitude"
+"ORD",6396369,6423913,12.820282,"Chicago O'Hare International Airport",41.97859955,-87.90480042
+"ATL",5993873,5977102,11.970975,"Hartsfield Jackson Atlanta International Airport",33.6366996765137,-84.4281005859375
+"DFW",5606677,5635717,11.242394,"Dallas Fort Worth International Airport",32.896800994873,-97.0380020141602
+"LAX",4018534,4014412,8.032946,"Los Angeles International Airport",33.94250107,-118.4079971
+"PHX",3451849,3451695,6.903544,"Phoenix Sky Harbor International Airport",33.4342994689941,-112.012001037598
+"DEN",3273301,3286620,6.559921,"Denver International Airport",39.861698150635,-104.672996521
+"DTW",2911735,2926809,5.838544,"Detroit Metropolitan Wayne County Airport",42.2123985290527,-83.353401184082
+"IAH",2852086,2855859,5.707945,"George Bush Intercontinental Houston Airport",29.9843997955322,-95.3414001464844
+"MSP",2698799,2704905,5.403704,"Minneapolis-St Paul International/Wold-Chamberlain Airport",44.8819999695,-93.2218017578
+"SFO",2678795,2668430,5.347225,"San Francisco International Airport",37.6189994812012,-122.375
