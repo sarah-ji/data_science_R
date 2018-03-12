@@ -34,9 +34,9 @@ world = map_data("world")
 
 
 ```{r}
-#Sys.setenv(SPARK_HOME="/usr/lib/spark")
-#config <- spark_config()
-#sc <- spark_connect(master = "yarn-client", config = config)
+Sys.setenv(SPARK_HOME="/usr/lib/spark")
+config <- spark_config()
+sc <- spark_connect(master = "yarn-client", config = config)
 ```
 
 Access hive tables
@@ -152,7 +152,7 @@ testlong = bind_rows(top10buspathwithlatlong1, top10buspathwithlatlong2)
 #names(top10busiestpathLL) = c("Destination", "Origin", "N_path", "Path", "Lat.D", "Long.D", "Lat.O", "Long.O")
 
 
-long10busypath = test33 %>%
+long10busypath = testlong %>%
 mutate(Latitudes = as.numeric(Latitude), Longitudes = as.numeric(Longitude)) %>% select(Destination = dest, Origin = origin, N_path = n_jointpath, routenumber = pairnumber, Latitudes, Longitudes)
 
 
@@ -169,16 +169,16 @@ labs(title = "Map of Top 10 Busiest Routes",
 x = "Longitude (Degrees)", y = "Latitude (Degrees)")
 
 
-write.csv(file = "~/biostat-m280-2018-winter/hw4/top10busiestpaths.csv", long10busypath, row.names = FALSE) 
-write.csv(file = "~/biostat-m280-2018-winter/hw4/top10busiestAirports.csv", top10busiestLatLong2, row.names = FALSE) 
-write.csv(file = "~/biostat-m280-2018-winter/hw4/LAXflightsbyday", LAXflightsbyday, row.names = FALSE) 
-write.csv(file = "~/biostat-m280-2018-winter/hw4/completetoppath.csv", jointpath, row.names = FALSE) 
-write.csv(file = "~/biostat-m280-2018-winter/hw4/airlines.csv", airlinez, row.names = FALSE) 
-write.csv(file = "~/biostat-m280-2018-winter/hw4/airports.csv", airportz, row.names = FALSE) 
-write.csv(file = "~/biostat-m280-2018-winter/hw4/weekdaysLAX.csv", LAX2, row.names = FALSE) 
-write.csv(file = "~/biostat-m280-2018-winter/hw4/airports.csv", airportz, row.names = FALSE) 
-write.csv(file = "~/biostat-m280-2018-winter/hw4/modeldataHua.csv", model_data, row.names = FALSE) 
-write.csv(file = "~/biostat-m280-2018-winter/hw4/modeldataME.csv", my_model_data, row.names = FALSE) 
+#write.csv(file = "~/biostat-m280-2018-winter/hw4/top10busiestpaths.csv", long10busypath, row.names = FALSE) 
+#write.csv(file = "~/biostat-m280-2018-winter/hw4/top10busiestAirports.csv", top10busiestLatLong2, row.names = FALSE) 
+#write.csv(file = "~/biostat-m280-2018-winter/hw4/LAXflightsbyday", LAXflightsbyday, row.names = FALSE) 
+#write.csv(file = "~/biostat-m280-2018-winter/hw4/completetoppath.csv", jointpath, row.names = FALSE) 
+#write.csv(file = "~/biostat-m280-2018-winter/hw4/airlines.csv", airlinez, row.names = FALSE) 
+#write.csv(file = "~/biostat-m280-2018-winter/hw4/airports.csv", airportz, row.names = FALSE) 
+#write.csv(file = "~/biostat-m280-2018-winter/hw4/weekdaysLAX.csv", LAX2, row.names = FALSE) 
+#write.csv(file = "~/biostat-m280-2018-winter/hw4/airports.csv", airportz, row.names = FALSE) 
+#write.csv(file = "~/biostat-m280-2018-winter/hw4/modeldataHua.csv", model_data, row.names = FALSE) 
+#write.csv(file = "~/biostat-m280-2018-winter/hw4/modeldataME.csv", my_model_data, row.names = FALSE) 
 
 ```
 
@@ -193,15 +193,12 @@ write.csv(file = "~/biostat-m280-2018-winter/hw4/modeldataME.csv", my_model_data
 (b). Visualize and explain seasonal effects.
 
 ```{r}
-LAXflightsbyday = flights_tbl %>% 
-  filter(cancelled == 0, origin == "LAX" | dest == "LAX", year >= 1998) %>%
-group_by(year, month, dayofmonth) %>% summarise(n1 = count()) %>% collect()
 
 LAXwithseason = flights_tbl %>% filter((dest == "LAX" | origin = "LAX") & cancelled == 0 & !is.na(distance)) %>% 
   mutate(if(month %in% c(3:5)){season = "Spring"}
-                      if(month %in% c(6:8)){season = "Summer"}
-                      if(month %in% c(9:11)){season = "Autumn"}
-                      if(month %in% c(12, 1, 2)){season = "Winter"} %>% group_by(season) %>% summarise(n_season = count()) %>% collect()
+                      else if(month %in% c(6:8)){season = "Summer"}
+                      else if(month %in% c(9:11)){season = "Autumn"}
+                      else if(month %in% c(12, 1, 2)){season = "Winter"} %>% group_by(season) %>% summarise(n_season = count()) %>% collect()
 
 
 LAXseason <- LAXwithseason %>% group_by(season) %>% count() %>% collect()
@@ -214,7 +211,10 @@ LAXseason <- LAXwithseason %>% group_by(season) %>% count() %>% collect()
 ```{r}
 LAXflightsbyday = flights_tbl %>% 
   filter(cancelled == 0, origin == "LAX" | dest == "LAX", year >= 1998) %>%
-group_by(year, month, dayofmonth) %>% summarise(n1 = count()) %>% collect()
+group_by(year, month, dayofmonth) %>% summarise(n = count()) %>% collect()
+
+LAXflightsbyday %>% arrange(year, month, dayofmonth) %>% mutate(date = make_date(year = year, month = month, day = dayofmonth)) %>% ggplot() + geom_line(aes(x = date, y = n)) + coord_cartesian(ylim = c(800, 1400)) + labs(title = "LAX air traffic")
+
 ```
 
 
@@ -250,20 +250,6 @@ ggplot() +
 ```
 
 
-```{r, evaluate = FALSE, include = FALSE, echo = FALSE}
-
-LAXwithseason = flights_tbl %>% filter((dest == "LAX" | origin = "LAX") & cancelled == 0 & !is.na(distance)) %>% mutate( if(month %in% c(3:5)){season = "Spring"}
-                      else if(month %in% c(6:8)){season = "Summer"}
-                      else if(month %in% c(9:11)){season = "Autumn"}
-                      else if(month %in% c(12, 1, 2)){season = "Winter"}) %>% collect()
-
-
-LAXseason <- LAXwithseason %>% group_by(season) %>% count() %>% collect()
-
-LAX2 <- flights_tbl %>%
-  filter((dest == "LAX" | origin == "LAX") & (cancelled == 0) & !is.na(distance)) %>% 
-  group_by(dayofweek) %>% summarise(n_weekday = n()) %>% arrange(desc(n_weekday)) %>% collect()
-```
 
 ```{r}
 flightzz <- flights_tbl %>% select(year, arrdelay, depdelay, distance, uniquecarrier, flightnum, origin, dest, cancelled) %>% collect()
