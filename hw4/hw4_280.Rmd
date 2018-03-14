@@ -194,6 +194,35 @@ LAXflightsbyday %>% arrange(year, month, dayofmonth) %>% mutate(date = make_date
 
 ```
 
+**Answer**:
+"It's not going to be a revolution; it's going to be an evolution," said Bob van der Linden, chairman of the aeronautics division at the Smithsonian's National Air and Space Museum. 
+
+"It's almost like the A380 was specifically designed for Los Angeles," said Allan McArtor, chairman of Airbus North America. "Los Angeles is an airport that is constrained by its boundaries — in a community that is very environmentally sensitive to both emissions and noise — and there's a need to be more efficient with respect to aircraft movements."
+
+Qantas Airways, scheduled to make it's first commercial A380 flight into LAX in August 2008. The super jumbo jet also could help space-constrained airports, including LAX, by allowing carriers to combine several flights into one.
+
+In Los Angeles, Airbus and many of the 15 international carriers that have purchased the behemoth repeatedly have criticized LAX for moving too slowly to improve its facilities. A380's first U.S. landing
+
+Los Angeles World Airports expects to spend about $121 million by 2009 to ready the airport for the A380, which carries at least 140 more passengers than a Boeing 747, currently the largest passenger jet in service. Despite the upgrades to LAX, carriers are still concerned that the airport won't have enough gates to support multiple A380 flights. By 2010, LAX is expected to handle more A380 operations than any airport in North America.
+
+Boeing 747-400ER 
+
+Passengers*: 416
+
+Airbus A380
+
+Passengers*: 555
+
+http://www.latimes.com/travel/la-trw-airbus18mar18-story.html
+
+At the moment - 2005 - the recorded increase is 4-5 % yearly and this means some  60% additional traffic around 2015 in the skies, for a system working already at maximum capacity
+
+
+August 8,2000	LAX Lighting Ceremony for pylons. New Gateway to Southern California
+
+April 2,2007	Newly relocated Runway 25 Left/7 Right on the south side of the airport reopens to air traffic. Completion was a major milestone in an overall $333-million South Airfield Improvement Project
+
+https://www.lawa.org/en/history/lax-history/just-the-facts 
 
 (b). Visualize and explain seasonal effects.
 
