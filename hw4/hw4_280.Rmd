@@ -228,9 +228,23 @@ LAXflightsbyweek = flights_tbl %>%
   filter(cancelled == 0, origin == "LAX" | dest == "LAX", year >= 1998, !is.na(dayofweek)) %>%
 group_by(dayofweek) %>% mutate(n_week = count()) %>% select(year, dayofweek, n_week) %>% collect()
 
-LAXflightsbyweek %>% arrange(dayofweek) %>% ggplot() + geom_line(aes(x = dayofweek, y = n_week)) + labs(title = "LAX air traffic by week")
+LAXweek1 = flights_tbl %>% 
+  filter(cancelled == 0 & (origin == "LAX" | dest == "LAX") & year >= 1998 & !is.na(dayofweek)) %>% group_by(year, dayofweek) %>% 
+  summarise(peryearday = count()) %>% collect()
 
+LAXweek2 = LAXweek1 %>%
+      mutate(Weekday = as_factor(labelled(dayofweek,
+                                      c("Monday" = 1, "Tuesday" = 2, "Wednesday" = 3,
+                                        "Thursday" = 4, "Friday" = 5, "Saturday" = 6,
+                                        "Sunday" = 7)))) 
 
+LAXweek2 = LAXweek2 %>% group_by(year, Weekday) %>% mutate(n_weekday = sum(peryearday))
+
+    
+    LAXweek2 %>% ggplot(aes(x = year, y = n_weekday / 1000000, fill = Weekday)) + 
+      geom_bar(stat = "identity") +
+      labs(title = "LAX Air Traffic Weekly Effects",
+           x = "Year", y = "Flights (in millions)", fill = "Weekday")
 ```
 
 
