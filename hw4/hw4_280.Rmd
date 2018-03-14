@@ -289,9 +289,8 @@ model_data <- flights_tbl %>%
     filter(arrdelay > -60 & arrdelay < 360) %>% #filter outliers
     filter(year >= 2003 & year <= 2007) %>%
     left_join(airlines_tbl, by = c("uniquecarrier" = "code")) %>% # merge by the columns
-    mutate(gain = depdelay - arrdelay) %>%
-    select(year, month, arrdelay, depdelay, destination, distance, uniquecarrier, description, gain) %>% collect()
-
+    left_join(airports_tbl, by = c("dest" = "faa")) %>% 
+    select(year, month, arrdelay, depdelay, destination = dest, distance, uniquecarrier, description, tz_name, alt) %>% collect()
 
 sumstat_modeldata = 
   model_data %>%
@@ -301,33 +300,20 @@ sumstat_modeldata =
   select(description, gain, distance, depdelay) %>%
   arrange(gain)
 
-
-pathlatitudelongitude = airports_tbl %>% 
-filter(faa %in% c(top10traveledpathDestination, top10traveledpathOrigin)) %>% 
-select(Airport = faa, Latitude = lat, Longitude = lon) %>% collect()
-
-top10busiestpath = jointpath[1:10, ] 
-top10busiestpath$pairnumber = c(1:10)
-
-top10buspathwithlatlong1 = left_join(top10busiestpath, pathlatitudelongitude, by = c("dest" = "Airport"))
-top10buspathwithlatlong2 = left_join(top10busiestpath, pathlatitudelongitude, by = c("origin" = "Airport"))
-
-top10busiestpathLL = full_join(top10buspathwithlatlong1, top10buspathwithlatlong2, by = "n_jointpath")
-testlong = bind_rows(top10buspathwithlatlong1, top10buspathwithlatlong2)
 ```
 
 
 ```{r}
 # Partition the data into training and validation sets
 model_partition <- model_data %>% 
-  sdf_partition(train = 0.8, valid = 0.2, seed = 51738)
+  sdf_partition(train = 0.8, valid = 0.2, seed = 5555)
 
 # Fit a linear model
 
 ml1 <- model_partition$train %>%
-    ml_linear_regression(gain ~ distance + depdelay + uniquecarrier)
-
+    ml_linear_regression(arrdelay ~ distance + depdelay + uniquecarrier + tz_name + alt)
   
+summary(ml1)
 ```
 
 ```{r}
@@ -335,19 +321,63 @@ model_deciles <- lapply(model_partition, function(x) {
     sdf_predict(ml1, x) %>%
       mutate(decile = ntile(desc(prediction), 10)) %>%
       group_by(decile) %>%
-      summarize(gain = mean(gain)) %>%
-      select(decile, gain) %>%
+      summarize(arrdelay = mean(arrdelay)) %>%
+      select(decile, arrdelay) %>%
       collect()
   })
 ```
 
-
-```{r, evaluate = FALSE, include = FALSE, echo = FALSE}
-airlinez <- airlines_tbl %>% collect()
+```{r}
+deciles <- rbind(
+  data.frame(data = 'train', model_deciles$train),
+  data.frame(data = 'valid', model_deciles$valid),
+  make.row.names = FALSE
+)
 ```
 
-```{r, evaluate = FALSE, include = FALSE, echo = FALSE}
-airportz <- airports_tbl %>% group_by(faa) %>% collect()
+```{r}
+# Plot average gains by predicted decile
+deciles %>%
+  ggplot(aes(factor(decile), arrdelay, fill = data)) +
+  geom_bar(stat = 'identity', position = 'dodge') +
+  labs(title = 'Average gain by predicted decile', x = 'Decile', y = 'Minutes')
+```
+
+
+```{r}
+data_2008 <- flights_tbl %>%
+    filter(!is.na(arrdelay) & !is.na(depdelay) & !is.na(distance) & origin == "LAX" & (cancelled == 0)) %>%
+    filter(depdelay > 15 & depdelay < 240) %>% #filter outliers
+    filter(arrdelay > -60 & arrdelay < 360) %>% #filter outliers
+    filter(year == 2008) %>%
+    left_join(airlines_tbl, by = c("uniquecarrier" = "code")) %>% # merge by the columns
+    left_join(airports_tbl, by = c("dest" = "faa")) %>% 
+    select(year, month, arrdelay, depdelay, destination = dest, distance, uniquecarrier, description, tz_name, alt)
+
+
+carrier = collect(carrier)
+```
+
+```{r}
+data_2008
+```
+
+```{r}
+carrier <- sdf_predict(ml1, data_2008) %>%
+  group_by(description) %>%
+  summarize(ArrivalDelay = mean(arrdelay), prediction = mean(prediction), freq = n()) %>%
+  filter(freq > 100) %>% collect()
+
+```
+
+
+```{r}
+# Plot actual gains and predicted gains by airline carrier
+ggplot(carrier, aes(ArrivalDelay, prediction)) + 
+  geom_point(alpha = 0.75, color = 'red', shape = 3) +
+  geom_abline(intercept = 0, slope = 1, alpha = 0.15, color = 'blue') +
+  geom_text(aes(label = substr(description, 1, 20)), size = 3, alpha = 0.75, vjust = -1) +
+  labs(title='Average Arrival Delay Forecast', x = 'Actual', y = 'Predicted')
 ```
 
 
