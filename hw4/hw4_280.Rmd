@@ -224,6 +224,29 @@ April 2,2007	Newly relocated Runway 25 Left/7 Right on the south side of the air
 
 https://www.lawa.org/en/history/lax-history/just-the-facts 
 
+It is illegal to limit the number of passengers that use an airport, but in December 2005 the city agreed to limit the passenger gates to 163.  Once passenger usage hits 75 million, a maximum of two gates a year for up to five years will be closed, intending to limit growth to 79 million passengers a year. In exchange civil lawsuits were abandoned, to allow the city to complete badly needed improvements to the airport.
+
+A key element of the settlement proposal involves limiting passenger traffic at LAX, which is expected to hit 63 million this year.
+
+The FAA does not allow airports to cap the number of passengers, but Kennard said LAX can be designed to limit growth. Once annual passenger traffic hits 75 million, the airport would shut down two gates a year for the next five years.
+
+That would reduce the number of airport gates from the current 163 to 153, limiting the number of flights that could be accommodated.
+
+https://web.archive.org/web/20100722070218/http://www.redorbit.com/news/technology/318661/deal_cut_to_halt_los_angeles_airport_lawsuits/
+
+
+2004 - https://www.lawa.org/-/media/lawa-web/lawa-our-lax/finallaxplan_092904.ashx
+provide and upgrade needed facilities to accomodate current and next generation larger aircraft associated with internationa and long haul domestic travel. september 29 2004.
+
+NEWLY EXPANDED AND RENOVATED BOB HOPE HOLLYWOOD USO CENTER TO BE RE-DEDICATED AT LOS ANGELES INTERNATIONAL AIRPORT
+09/24/2004
+
+
+(Los Angeles, California, September 4, 2004) -- Los Angeles International Airport returned to normal Saturday after two unrelated incidents resulted in four of the nine passenger terminals being closed and vehicle traffic restricted for about three hours. Neither incident was terrorism-related.
+
+https://www.flylax.com/en/lax-news?page=123 
+
+
 (b). Visualize and explain seasonal effects.
 
 ```{r}
