@@ -25,6 +25,7 @@ library(ggplot2)
 library(ggmap)
 library(maps)
 library(mapdata)
+library(haven)
 ```
 
 ```{r}
@@ -36,7 +37,7 @@ world = map_data("world")
 ```{r}
 Sys.setenv(SPARK_HOME="/usr/lib/spark")
 config <- spark_config()
-sc <- spark_connect(master = "yarn-client", config = config)
+sc <- spark_connect(master = "local", config = config)
 ```
 
 Access hive tables
@@ -83,8 +84,6 @@ flightstotal = left_join(flightzorigin, flightzdest, by = c("origin" = "dest")) 
 names(flightstotal) = c("Airport", "n_origin", "n_dest", "Total Flights (in millions)")
 top10busiestAirports = flightstotal$Airport[1:10]
 
-
-  
 ```
 
 ```{r}
@@ -168,6 +167,7 @@ alpha = 0.4) +
 labs(title = "Map of Top 10 Busiest Routes", 
 x = "Longitude (Degrees)", y = "Latitude (Degrees)")
 
+#add both ways to make 10 different routes
 
 #write.csv(file = "~/biostat-m280-2018-winter/hw4/top10busiestpaths.csv", long10busypath, row.names = FALSE) 
 #write.csv(file = "~/biostat-m280-2018-winter/hw4/top10busiestAirports.csv", top10busiestLatLong2, row.names = FALSE) 
@@ -198,21 +198,24 @@ LAXflightsbyday %>% arrange(year, month, dayofmonth) %>% mutate(date = make_date
 (b). Visualize and explain seasonal effects.
 
 ```{r}
-#not sure what to do about the seasonal effects
 
-LAXflightsbyday[LAXflightsbyday$month %in% c(12, 1, 2), 5] = "Winter"
-LAXflightsbyday[LAXflightsbyday$month %in% c(6:8), 5] = "Summer"
-LAXflightsbyday[LAXflightsbyday$month %in% c(3:5), 5] = "Spring"
-LAXflightsbyday[LAXflightsbyday$month %in% c(9:11), 5] = "Autumn"
+LAXseason1 = flights_tbl %>% 
+  filter(cancelled == 0 & (origin == "LAX" | dest == "LAX") & year >= 1998) %>% group_by(year, month) %>% summarise(peryearmonth = count()) %>% collect()
 
-LAXseason =  LAXflightsbyday %>% mutate(season = as.factor(V5)) %>% select(year, n, season)
- 
-LAXseason2 = LAXseason %>% group_by(season) %>% mutate(n_season = sum(n))
-#springtest = LAXseason %>% filter(season == "Spring") %>% summarize(n = sum(n))
+LAXseason2 = LAXseason1 %>%
+      mutate(season = as_factor(labelled(month,
+                                      c("Winter" = 12, "Winter" = 1, "Winter" = 2,
+                                        "Spring" = 3, "Spring" = 4, "Spring" = 5,
+                                        "Summer" = 6, "Summer" = 7, "Summer" = 8,
+                                        "Autumn" = 9, "Autumn" = 10, "Autumn" = 11)))) 
 
-seasonal = LAXseason2[!duplicated(LAXseason2[5]),]
-       
-LAXseason2 %>% arrange(season) %>% ggplot() + geom_line(aes(x = season, y = n_season)) + labs(title = "LAX air traffic by season")
+LAXseason2 = LAXseason2 %>% group_by(year, season) %>% mutate(n_season = sum(peryearmonth))
+
+    
+    LAXseason2 %>% ggplot(aes(x = year, y = n_season / 1000000, fill = season)) + 
+      geom_bar(stat = "identity") +
+      labs(title = "LAX Air Traffic Seasonal Effects",
+           x = "Year", y = "Flights (in millions)", fill = "Season")
 
 ```
 
@@ -223,9 +226,10 @@ LAXseason2 %>% arrange(season) %>% ggplot() + geom_line(aes(x = season, y = n_se
 ```{r}
 LAXflightsbyweek = flights_tbl %>% 
   filter(cancelled == 0, origin == "LAX" | dest == "LAX", year >= 1998, !is.na(dayofweek)) %>%
-group_by(dayofweek) %>% summarise(n_week = count()) %>% collect()
+group_by(dayofweek) %>% mutate(n_week = count()) %>% select(year, dayofweek, n_week) %>% collect()
 
 LAXflightsbyweek %>% arrange(dayofweek) %>% ggplot() + geom_line(aes(x = dayofweek, y = n_week)) + labs(title = "LAX air traffic by week")
+
 
 ```
 
@@ -261,19 +265,18 @@ ggplot() +
       coord_fixed(1.5)
 ```
 
-
+4. Predictive model for the arrival delay of flights flying from LAX
 
 ```{r}
-flightzz <- flights_tbl %>% select(year, arrdelay, depdelay, distance, uniquecarrier, flightnum, origin, dest, cancelled) %>% collect()
 
 model_data <- flights_tbl %>%
-    filter(!is.na(arrdelay) & !is.na(depdelay) & !is.na(distance) & (dest == "LAX" | origin == "LAX") & (cancelled == 0)) %>%
+    filter(!is.na(arrdelay) & !is.na(depdelay) & !is.na(distance) & origin == "LAX" & (cancelled == 0)) %>%
     filter(depdelay > 15 & depdelay < 240) %>% #filter outliers
     filter(arrdelay > -60 & arrdelay < 360) %>% #filter outliers
     filter(year >= 2003 & year <= 2007) %>%
     left_join(airlines_tbl, by = c("uniquecarrier" = "code")) %>% # merge by the columns
     mutate(gain = depdelay - arrdelay) %>%
-    select(year, month, arrdelay, depdelay, distance, uniquecarrier, description, gain) %>% collect()
+    select(year, month, arrdelay, depdelay, destination, distance, uniquecarrier, description, gain) %>% collect()
 
 
 sumstat_modeldata = 
@@ -283,7 +286,22 @@ sumstat_modeldata =
             distance = mean(distance), depdelay = mean(depdelay)) %>%
   select(description, gain, distance, depdelay) %>%
   arrange(gain)
+
+
+pathlatitudelongitude = airports_tbl %>% 
+filter(faa %in% c(top10traveledpathDestination, top10traveledpathOrigin)) %>% 
+select(Airport = faa, Latitude = lat, Longitude = lon) %>% collect()
+
+top10busiestpath = jointpath[1:10, ] 
+top10busiestpath$pairnumber = c(1:10)
+
+top10buspathwithlatlong1 = left_join(top10busiestpath, pathlatitudelongitude, by = c("dest" = "Airport"))
+top10buspathwithlatlong2 = left_join(top10busiestpath, pathlatitudelongitude, by = c("origin" = "Airport"))
+
+top10busiestpathLL = full_join(top10buspathwithlatlong1, top10buspathwithlatlong2, by = "n_jointpath")
+testlong = bind_rows(top10buspathwithlatlong1, top10buspathwithlatlong2)
 ```
+
 
 ```{r}
 # Partition the data into training and validation sets
@@ -463,6 +481,6 @@ ggplot(carrier, aes(gain, prediction)) +
 ```
 
 ```{r, evaluate = FALSE, include = FALSE, echo = FALSE}
-#spark_disconnect_all()
+spark_disconnect_all()
 ```
 
