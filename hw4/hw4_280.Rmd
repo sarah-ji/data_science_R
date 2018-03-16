@@ -8,9 +8,8 @@ output: html_document
 ```{r setup, include=FALSE}
 #http://35.185.198.142:8787/
 knitr::opts_chunk$set(echo = TRUE, cache = TRUE)
-library(sparklyr)
-library(dplyr)
-library(ggplot2)
+if(!"pacman" %in% row.names(installed.packages())){install.packages("pacman") & load("pacman")}
+
 # these are packages you will need, but probably already have.
 # Don't bother installing if you already have them
 #install.packages(c("ggplot2", "devtools", "dplyr", "stringr"))
@@ -21,7 +20,7 @@ library(ggplot2)
 # the github version of ggmap, which recently pulled in a small fix I had
 # for a bug 
 devtools::install_github("dkahle/ggmap")
-p_load("sparklyr", "dplyr", "ggplot2", "ggmap", "maps", "mapdata", "haven", "ggrepel", "pacman")
+pacman::p_load(sparklyr, dplyr, ggplot2, ggmap, maps, mapdata, haven, ggrepel, pacman, install = TRUE)
 ```
 
 ```{r}
@@ -83,20 +82,11 @@ top10busiestAirports = flightstotal$Airport[1:10]
 ```
 
 ```{r}
-
-top10busiestLatLong = airportz %>% 
+top10busiestLatLong = airports_tbl %>% 
 filter(faa %in% top10busiestAirports) %>% 
 select(AirportID = faa, Airport = name, Latitude = lat, Longitude = lon) %>% collect()
 
 top10busiestLatLong2 = left_join(flightstotal, top10busiestLatLong, by = c("Airport" = "AirportID")) %>% filter(!is.na(Latitude)) %>% mutate(Latitude = as.numeric(Latitude), Longitude = as.numeric(Longitude))
-```
-
-```{r}
-ggplot() + 
-      geom_polygon(data = usa, aes(x = long, y = lat), fill = "lavender", color = "blue") + 
-      geom_point(data = top10busiestLatLong2, aes(x = Longitude, y = Latitude), color = "black", size = 5) +
-      geom_point(data = top10busiestLatLong2, aes(x = Longitude, y = Latitude), color = "chartreuse", size = 4) +
-      coord_fixed(1.3)
 ```
 
 
@@ -268,7 +258,7 @@ LAXseason2 = LAXseason1 %>%
 LAXseason2 = LAXseason2 %>% group_by(year, season) %>% mutate(n_season = sum(peryearmonth))
 
     
-    LAXseason2 %>% group_by(year) %>% ggplot(aes(x = cut_width(year, 1), y = n_season / 1000000, fill = season)) + 
+    LAXseason2 %>% group_by(year) %>% ggplot(aes(x = as.factor(year), y = n_season / 1000000, fill = season)) + 
       geom_bar(stat = "identity") +
       labs(title = "LAX Air Traffic Seasonal Effects",
            x = "Year", y = "Flights (in millions)", fill = "Season") + scale_fill_manual(values = c("lightblue1", "powderblue", "lightblue3", "lightblue4")) + theme_light()
@@ -297,7 +287,7 @@ LAXweek2 = LAXweek1 %>%
 LAXweek2 = LAXweek2 %>% group_by(year, Weekday) %>% mutate(n_weekday = sum(peryearday))
 
     
-    LAXweek2 %>% ggplot(aes(x = cut_width(year, 1), y = n_weekday / 1000000, fill = Weekday)) + 
+    LAXweek2 %>% ggplot(aes(x = as.factor(year), y = n_weekday / 1000000, fill = Weekday)) + 
       geom_bar(stat = "identity") +
       labs(title = "LAX Air Traffic Weekly Effects",
            x = "Year", y = "Flights (in millions)", fill = "Weekday") + scale_fill_manual(values = c("#882E72", "#B178A6", "#D6C1DE", "#1965B0", "#5289C7", "#7BAFDE", "#4EB265", "#90C987", "#CAE0AB", "#F7EE55", "#F6C141", "#F1932D", "#E8601C", "#DC050C")) + theme_light()
@@ -317,7 +307,7 @@ top10destfromLAX = fromLAX[1:10,]
 ```
 
 ```{r}
-top10destLAXLatLong = airportz %>% 
+top10destLAXLatLong = airports_tbl %>% 
 filter(faa %in% top10destfromLAXnames) %>% 
 select(AirportID = faa, Airport = name, Latitude = lat, Longitude = lon) %>% collect()
 
@@ -464,116 +454,7 @@ ggplot(carrier, aes(arrdelay, prediction)) +
 ```
 
 
-Data starts around 1987 first year may not have complete data. 22 years of data. 
-
 ```{r, evaluate = FALSE, include = FALSE, echo = FALSE}
-out
-```
-
-Barplot of the number of data points in each year
-
-```{r, evaluate = FALSE, include = FALSE, echo = FALSE}
-out %>% ggplot(aes(x = year, y = n)) + geom_col()
-```
-
-FIT A MODEL:
-
-Suppose we want to fit a linear regression of gain (depdelay - arrdelay) on distance, departure delay, and carriers using data from 2003-2007.
-
-
-```{r, evaluate = FALSE, include = FALSE, echo = FALSE}
-
-modeldata = read.csv("modeldata.csv")
-
-modeldata$id <- 1:nrow(modeldata)
-train <- modeldata %>% dplyr::sample_frac(.8)
-test  <- dplyr::anti_join(modeldata, train, by = 'id')
-
-lmderp = lm(data = train, arrdelay ~ distance + depdelay + uniquecarrier + tz_name + alt)
-summary(lmderp)
-modelprediction = predict.lm(lmderp)
-
-test$prediction = modelprediction
-
-mutate(decile = ntile(desc(prediction), 10)) %>%
-      group_by(decile) %>%
-      summarize(gain = mean(gain)) %>%
-      select(decile, gain)
-```
-
-Assess model performance
-Compare the model performance using the validation data.
-
-Apply the model partition separatately on train and test data. 
-
-```{r, evaluate = FALSE, include = FALSE, echo = FALSE}
-# Calculate average gains by predicted decile
-system.time(
-  model_deciles <- lapply(model_partition, function(x) {
-    sdf_predict(ml1, x) %>%
-      mutate(decile = ntile(desc(prediction), 10)) %>%
-      group_by(decile) %>%
-      summarize(gain = mean(gain)) %>%
-      select(decile, gain) %>%
-      collect()
-  })
-)
-```
-
-```{r, evaluate = FALSE, include = FALSE, echo = FALSE}
-model_deciles
-```
-
-```{r, evaluate = FALSE, include = FALSE, echo = FALSE}
-# Create a summary dataset for plotting
-deciles <- rbind(
-  data.frame(data = 'train', model_deciles$train),
-  data.frame(data = 'valid', model_deciles$valid),
-  make.row.names = FALSE
-)
-deciles
-```
-
-visualize performance of the model it looks good.
-
-```{r, evaluate = FALSE, include = FALSE, echo = FALSE}
-# Plot average gains by predicted decile
-deciles %>%
-  ggplot(aes(factor(decile), gain, fill = data)) +
-  geom_bar(stat = 'identity', position = 'dodge') +
-  labs(title = 'Average gain by predicted decile', x = 'Decile', y = 'Minutes')
-```
-
-Visualize predictions
-Compare actual gains to predicted gains for an out of time sample.
-
-new dataset
-```{r, evaluate = FALSE, include = FALSE, echo = FALSE}
-# Select data from an out of time sample
-data_2008 <- flights_tbl %>%
-  filter(!is.na(arrdelay) & !is.na(depdelay) & !is.na(distance)) %>%
-  filter(depdelay > 15 & depdelay < 240) %>%
-  filter(arrdelay > -60 & arrdelay < 360) %>%
-  filter(year == 2008) %>%
-  left_join(airlines_tbl, by = c("uniquecarrier" = "code")) %>%
-  mutate(gain = depdelay - arrdelay) %>%
-  select(year, month, arrdelay, depdelay, distance, uniquecarrier, description, gain, origin, dest)
-data_2008
-```
-
-for each airline plot the predicted vs actual values of gain. southwest and united wait.
-delta is good. 
-
-```{r, evaluate = FALSE, include = FALSE, echo = FALSE}
-# Plot actual gains and predicted gains by airline carrier
-ggplot(carrier, aes(gain, prediction)) + 
-  geom_point(alpha = 0.75, color = 'red', shape = 3) +
-  geom_abline(intercept = 0, slope = 1, alpha = 0.15, color = 'blue') +
-  geom_text(aes(label = substr(description, 1, 20)), size = 3, alpha = 0.75, vjust = -1) +
-  labs(title='Average Gains Forecast', x = 'Actual', y = 'Predicted')
-```
-
-```{r, evaluate = FALSE, include = FALSE, echo = FALSE}
-spark_disconnect_all()
+spark_disconnect(sc)
 ```
 
