@@ -1,71 +1,41 @@
 ---
-title: "hw4_280"
-author: "Sarah Ji"
-date: "3/6/2018"
+title: "Biostat M280 Homework 4"
+subtitle: Due Mar 16 @ 11:59PM
 output: html_document
 ---
 
-```{r setup, include=FALSE}
-#http://35.185.198.142:8787/
-knitr::opts_chunk$set(echo = TRUE, cache = TRUE)
+```{r setup, include=FALSE, echo= FALSE}
+knitr::opts_chunk$set(echo = TRUE, cache = TRUE, error = TRUE)
 if(!"pacman" %in% row.names(installed.packages())){install.packages("pacman") & load("pacman")}
 
-# these are packages you will need, but probably already have.
-# Don't bother installing if you already have them
-#install.packages(c("ggplot2", "devtools", "dplyr", "stringr"))
-
-# some standard map packages.
-#install.packages(c("maps", "mapdata"))
-
-# the github version of ggmap, which recently pulled in a small fix I had
-# for a bug 
+# these are packages you will need
 devtools::install_github("dkahle/ggmap")
-pacman::p_load(sparklyr, dplyr, ggplot2, ggmap, maps, mapdata, haven, ggrepel, pacman, install = TRUE)
+pacman::p_load(sparklyr, dplyr, ggplot2, ggmap, maps, mapdata, haven, ggrepel, pacman, lubridate, install = TRUE)
 ```
 
 ```{r}
+#1
 usa = map_data("usa")
 world = map_data("world")
+states = map_data("state")
 ```
 
-
 ```{r}
+#2
 Sys.setenv(SPARK_HOME="/usr/lib/spark")
 config <- spark_config()
 sc <- spark_connect(master = "local", config = config)
 ```
 
-Access hive tables
 ```{r}
-# Cache flights Hive table into Spark
-#tbl_cache(sc, 'flights')
+#3
 flights_tbl <- tbl(sc, 'flights')
-
-#show what columns I have lazily
-#flights_tbl %>% print(width = Inf)
-```
-
-```{r}
-# Cache airlines Hive table into Spark
-#tbl_cache(sc, 'airlines')
 airlines_tbl <- tbl(sc, 'airlines')
-#airlines_tbl %>% print(width = Inf)
-```
-
-```{r}
-# Cache airports Hive table into Spark
-#tbl_cache(sc, 'airports')
 airports_tbl <- tbl(sc, 'airports')
-#airports_tbl %>% print(width = Inf)
 ```
 
-Map the top 10 busiest airports. Size of dots should reflect the number of flights through that destination.
-Hint: You may find this tutorial on Making Maps in R helpful.
-
 ```{r}
-#flightzz <- flights_tbl %>% select(year, uniquecarrier, flightnum, origin, dest, cancelled) %>% collect()
-
-
+#4
 flightzdest = flights_tbl %>% filter(cancelled == 0) %>% select(origin, dest) %>%
 group_by(dest) %>% summarise(n_dest = count()) %>%
 arrange(desc(n_dest)) %>% collect()
@@ -78,10 +48,10 @@ flightstotal = left_join(flightzorigin, flightzdest, by = c("origin" = "dest")) 
 
 names(flightstotal) = c("Airport", "n_origin", "n_dest", "Total Flights (in millions)")
 top10busiestAirports = flightstotal$Airport[1:10]
-
 ```
 
 ```{r}
+#5
 top10busiestLatLong = airports_tbl %>% 
 filter(faa %in% top10busiestAirports) %>% 
 select(AirportID = faa, Airport = name, Latitude = lat, Longitude = lon) %>% collect()
@@ -90,8 +60,13 @@ top10busiestLatLong2 = left_join(flightstotal, top10busiestLatLong, by = c("Airp
 ```
 
 
+Our Apache Yarn cluster hosts the [flights](http://stat-computing.org/dataexpo/2009/the-data.html) data representing 123 million flights over 22 years. Read the [lecture notes](http://hua-zhou.github.io/teaching/biostatm280-2018winter/slides/12-sparklyr/sparklyr-flights.html) on how to access the Yarn cluster. Connect to the database using `sparklyr` and answer following questions. You can base your answers on a specific year or the whole data set.
+
+1. Map the top 10 busiest airports. Size of dots should reflect the number of flights through that destination.  
+Hint: You may find this tutorial on [Making Maps in R](http://eriqande.github.io/rep-res-web/lectures/making-maps-with-R.html) helpful.
+
 ```{r}
-states = map_data("state")
+#6
 ggplot() + 
       geom_polygon(data = states, aes(x = long, y = lat, fill = region, group = group), color = "white") + 
       geom_point(data = top10busiestLatLong2, aes(x = Longitude, y = Latitude, size = `Total Flights (in millions)`), color = "black") +
@@ -100,13 +75,15 @@ ggplot() +
       scale_size(name = "Total Flights (in millions)", range = c(1, 5)) +
       labs(x = "Longitude", y = "Latitude", title = "Top 10 Busiest Airports in USA") +
       coord_fixed(1.5)
-
 ```
+
+**Answer**: The top 10 busiest airports with the most flights going in and out of its facilities are:
+
 
 2. Map the top 10 busiest direct routes. Size of lines should reflect the number of flights through that route.
 
-
-```{r}
+```{r, eval = T}
+#7
 jointpath = flights_tbl %>% filter(cancelled==0 & !is.na(dest) & !is.na(origin)) %>% 
 group_by(dest, origin) %>% summarise(n_jointpath = count()) %>%
 arrange(desc(n_jointpath)) %>% collect()
@@ -118,11 +95,11 @@ pathlatitudelongitude = airports_tbl %>%
 filter(faa %in% c(top10traveledpathDestination, top10traveledpathOrigin)) %>% 
 select(Airport = faa, Latitude = lat, Longitude = lon) %>% collect()
 
-top10busiestpath = jointpath[1:10, ] 
-top10busiestpath$pairnumber = c(1:10)
+top10buspathwithlatlong1 = left_join(jointpath[1:10, ], pathlatitudelongitude, by = c("dest" = "Airport"))
 
-top10buspathwithlatlong1 = left_join(top10busiestpath, pathlatitudelongitude, by = c("dest" = "Airport"))
-top10buspathwithlatlong2 = left_join(top10busiestpath, pathlatitudelongitude, by = c("origin" = "Airport"))
+
+
+top10buspathwithlatlong2 = left_join(jointpath[1:10, ], pathlatitudelongitude, by = c("origin" = "Airport"))
 
 top10busiestpathLL = full_join(top10buspathwithlatlong1, top10buspathwithlatlong2, by = "n_jointpath")
 testlong = bind_rows(top10buspathwithlatlong1, top10buspathwithlatlong2)
@@ -133,7 +110,7 @@ testlong = bind_rows(top10buspathwithlatlong1, top10buspathwithlatlong2)
 
 
 long10busypath = testlong %>%
-mutate(Latitudes = as.numeric(Latitude), Longitudes = as.numeric(Longitude)) %>% select(Destination = dest, Origin = origin, N_path = n_jointpath, routenumber = pairnumber, Latitudes, Longitudes)
+mutate(Latitudes = as.numeric(Latitude), Longitudes = as.numeric(Longitude)) %>% select(Destination = dest, Origin = origin, N_path = n_jointpath, Latitudes, Longitudes)
 
 
 ggplot() + 
@@ -145,106 +122,64 @@ geom_curve(data = top10busiestpathLL, aes(x = as.numeric(Longitude.x), y = as.nu
 labs(title = "Map of Top 10 Busiest Routes", 
 x = "Longitude (Degrees)", y = "Latitude (Degrees)") 
 
-+ geom_label_repel(data = long10busypath,  aes(x = Longitudes, y = Latitudes), label = long10busypath$Destination)
+uniquelabels2 = top10buspathwithlatlong1[!duplicated(top10buspathwithlatlong1[1]),]
 
-#add both ways to make 10 different routes
-
-#write.csv(file = "~/biostat-m280-2018-winter/hw4/top10busiestpaths.csv", long10busypath, row.names = FALSE) 
-#write.csv(file = "~/biostat-m280-2018-winter/hw4/top10busiestAirports.csv", top10busiestLatLong2, row.names = FALSE) 
-#write.csv(file = "~/biostat-m280-2018-winter/hw4/LAXflightsbyday", LAXflightsbyday, row.names = FALSE) 
-#write.csv(file = "~/biostat-m280-2018-winter/hw4/completetoppath.csv", jointpath, row.names = FALSE) 
-#write.csv(file = "~/biostat-m280-2018-winter/hw4/airlines.csv", airlinez, row.names = FALSE) 
-#write.csv(file = "~/biostat-m280-2018-winter/hw4/airports.csv", airportz, row.names = FALSE) 
-#write.csv(file = "~/biostat-m280-2018-winter/hw4/weekdaysLAX.csv", LAX2, row.names = FALSE) 
-#write.csv(file = "~/biostat-m280-2018-winter/hw4/airports.csv", airportz, row.names = FALSE) 
-#write.csv(file = "~/biostat-m280-2018-winter/hw4/modeldataHua.csv", model_data, row.names = FALSE) 
-#write.csv(file = "~/biostat-m280-2018-winter/hw4/modeldataME.csv", my_model_data, row.names = FALSE) 
-
+#+ geom_label_repel(data = long10busypath,  aes(x = Longitudes, y = Latitudes), label = long10busypath$Destination)
 ```
 
-3. 
-(a). Reproduce above plot. Visualize and explain some prominent features you observe. For example, what happened at points 1-5?
+**Answer**: The top 10 busiest direct routes with the highest number of flights through that route are:
+1) SFO - LAX 
+2) LAX - SFO
+3) LAX - LAS
+4) LAS - LAX
+5) PHX - LAX
+6) LAX - PHX
+7) ORD - MSP
+8) MSP - ORD
+9) PHX - LAS
+10) LAS - PHX
 
-  
 
-```{r}
+
+3. LAX:
+
+    (a). Reproduce the plot. Visualize and explain some prominent features you observe. For example, what happened at points 1-5?
+    
+```{r, eval = T}
+#8
 LAXflightsbyday = flights_tbl %>% 
   filter(cancelled == 0 & (origin == "LAX" | dest == "LAX") & year >= 1998) %>%
 group_by(year, month, dayofmonth) %>% summarise(n = count()) %>% collect()
 
-LAXflightsbyday %>% arrange(year, month, dayofmonth) %>% mutate(date = make_date(year = year, month = month, day = dayofmonth)) %>% ggplot() + geom_line(aes(x = date, y = n)) + coord_cartesian(ylim = c(800, 1400)) + labs(title = "LAX air traffic")
+LAXflightsbyday %>% arrange(year, month, dayofmonth) %>% mutate(date = make_date(year = year, month = month, day = dayofmonth)) %>% ggplot() + geom_line(aes(x = date, y = n)) + coord_cartesian(ylim = c(800, 1400)) + labs(title = "LAX air traffic") +   geom_label(aes(x = make_date(2001, 10, 01), y = 1076, label = "1")) +
+      geom_label(aes(x = make_date(2004, 11, 25), y = 1019, label = "2")) +
+      geom_label(aes(x = make_date(2004, 07, 04), y = 1060, label = "3")) +
+      geom_label(aes(x = make_date(2008, 01, 01), y = 1292, label = "4")) +
+      geom_label(aes(x = make_date(2001, 01, 01), y = 1299, label = "5"))
 
 ```
 
- # potential dates at the 5 points and the counts
-    # 3 2004-07-04 1060
-    # 2 2004-11-25 1019
-    # 5 2001-01-01 1299
-    # 1 2001-10-01 1076
-    # 4 2008-01-01 1292
+**Answer**: We have recreated the desired plot of the number of flights per day from 1998 - 2008, with points labeled 1 to 5 on the dates below:
+We notice there is a Holidays effect on the number of flights that come in and out of LAX per day. 9/11 is a historic moment in America,
+especially for those working in the airlines industry. While (1) 9/11 is not a holiday that repeats, the rest of the numbered dates are as follows:
 
-**Answer**:
-Airport operational issues
-Airport traffic volume
-Staffing issues like information about air carrier crew
-Aircraft mechanical issues
-Historical data on conferences or events that can indirectly impact flight performance
-Passenger traffic by airport by day etc
-
-"It's not going to be a revolution; it's going to be an evolution," said Bob van der Linden, chairman of the aeronautics division at the Smithsonian's National Air and Space Museum. 
-
-"It's almost like the A380 was specifically designed for Los Angeles," said Allan McArtor, chairman of Airbus North America. "Los Angeles is an airport that is constrained by its boundaries — in a community that is very environmentally sensitive to both emissions and noise — and there's a need to be more efficient with respect to aircraft movements."
-
-Qantas Airways, scheduled to make it's first commercial A380 flight into LAX in August 2008. The super jumbo jet also could help space-constrained airports, including LAX, by allowing carriers to combine several flights into one.
-
-In Los Angeles, Airbus and many of the 15 international carriers that have purchased the behemoth repeatedly have criticized LAX for moving too slowly to improve its facilities. A380's first U.S. landing
-
-Los Angeles World Airports expects to spend about $121 million by 2009 to ready the airport for the A380, which carries at least 140 more passengers than a Boeing 747, currently the largest passenger jet in service. Despite the upgrades to LAX, carriers are still concerned that the airport won't have enough gates to support multiple A380 flights. By 2010, LAX is expected to handle more A380 operations than any airport in North America.
-
-Boeing 747-400ER 
-
-Passengers*: 416
-
-Airbus A380
-
-Passengers*: 555
-
+Patterns in the data / Borderline Conspiracy Theories:
+(1) Fallout of 9/11. A truly tragic piece of American History unfolds and with it comes the fallout..
+(2) November 25, 2004, n = 1,019 : Thanksgiving ! Everyone is flying home to see their family members to celebrate thanksgiving.
+or ~ The LAX Plan, a law passed on September 29, 2004, to upgrade needed facilities to accomodate current and next generation larger aircraft associated with internationa and long haul domestic travel. https://www.lawa.org/-/media/lawa-web/lawa-our-lax/finallaxplan_092904.ashx
+(3) July 4, 2004, n = 1,060 : Independence Day! 
+(4) January 1, 2008, n = 1,292 : New Years Day!
+or ~ brings on a grim year for a financial crash soon to come, risk averse population.
+or ~ The super jumbo jet A380 by Airbus was intended to have its first landing in the United States at the LAX airport in September. 
+The A380, is the largest commercial plane that seats 555 passengers, significantly more than it's predecessor, the 747. The airbus could help space-constrained airports, including LAX, by allowing carriers to combine several flights into one.
 http://www.latimes.com/travel/la-trw-airbus18mar18-story.html
-
-At the moment - 2005 - the recorded increase is 4-5 % yearly and this means some  60% additional traffic around 2015 in the skies, for a system working already at maximum capacity
-
-
-August 8,2000	LAX Lighting Ceremony for pylons. New Gateway to Southern California
-
-April 2,2007	Newly relocated Runway 25 Left/7 Right on the south side of the airport reopens to air traffic. Completion was a major milestone in an overall $333-million South Airfield Improvement Project
-
-https://www.lawa.org/en/history/lax-history/just-the-facts 
-
-It is illegal to limit the number of passengers that use an airport, but in December 2005 the city agreed to limit the passenger gates to 163.  Once passenger usage hits 75 million, a maximum of two gates a year for up to five years will be closed, intending to limit growth to 79 million passengers a year. In exchange civil lawsuits were abandoned, to allow the city to complete badly needed improvements to the airport.
-
-A key element of the settlement proposal involves limiting passenger traffic at LAX, which is expected to hit 63 million this year.
-
-The FAA does not allow airports to cap the number of passengers, but Kennard said LAX can be designed to limit growth. Once annual passenger traffic hits 75 million, the airport would shut down two gates a year for the next five years.
-
-That would reduce the number of airport gates from the current 163 to 153, limiting the number of flights that could be accommodated.
-
-https://web.archive.org/web/20100722070218/http://www.redorbit.com/news/technology/318661/deal_cut_to_halt_los_angeles_airport_lawsuits/
-
-2004 - https://www.lawa.org/-/media/lawa-web/lawa-our-lax/finallaxplan_092904.ashx
-provide and upgrade needed facilities to accomodate current and next generation larger aircraft associated with internationa and long haul domestic travel. september 29 2004.
-
-NEWLY EXPANDED AND RENOVATED BOB HOPE HOLLYWOOD USO CENTER TO BE RE-DEDICATED AT LOS ANGELES INTERNATIONAL AIRPORT
-09/24/2004
-
-(Los Angeles, California, September 4, 2004) -- Los Angeles International Airport returned to normal Saturday after two unrelated incidents resulted in four of the nine passenger terminals being closed and vehicle traffic restricted for about three hours. Neither incident was terrorism-related.
-
-https://www.flylax.com/en/lax-news?page=123 
+(5) January 1, 2001, n = 1,299: New Years Day! 
 
 
-(b). Visualize and explain seasonal effects.
-
-```{r}
-
+    (b). Visualize and explain seasonal effects.
+    
+```{r, eval = TRUE}
+#9
 LAXseason1 = flights_tbl %>% 
   filter(cancelled == 0 & (origin == "LAX" | dest == "LAX") & year >= 1998) %>% group_by(year, month) %>% summarise(peryearmonth = count()) %>% collect()
 
@@ -264,12 +199,15 @@ LAXseason2 = LAXseason2 %>% group_by(year, season) %>% mutate(n_season = sum(per
            x = "Year", y = "Flights (in millions)", fill = "Season") + scale_fill_manual(values = c("lightblue1", "powderblue", "lightblue3", "lightblue4")) + theme_light()
 
 ```
+  
+**Answer**: Above we visualize the number of flights per year (in millions), stratified by season. Notice that the seasonal effect stays consistent over the years.
+This is probably the most useful information if you are planning a trip! Summer might be the most optimal time to fly (if you're a student like me), but 
+reconsider it when you see how much ticket prices increase for the coveted summer season. 
 
-
-(c). Visualize and explain weekly effects.
-
-
-```{r}
+    (c). Visualize and explain weekly effects.
+    
+```{r, eval = TRUE}
+#10
 LAXflightsbyweek = flights_tbl %>% 
   filter(cancelled == 0, origin == "LAX" | dest == "LAX", year >= 1998, !is.na(dayofweek)) %>%
 group_by(dayofweek) %>% mutate(n_week = count()) %>% select(year, dayofweek, n_week) %>% collect()
@@ -292,67 +230,16 @@ LAXweek2 = LAXweek2 %>% group_by(year, Weekday) %>% mutate(n_weekday = sum(perye
       labs(title = "LAX Air Traffic Weekly Effects",
            x = "Year", y = "Flights (in millions)", fill = "Weekday") + scale_fill_manual(values = c("#882E72", "#B178A6", "#D6C1DE", "#1965B0", "#5289C7", "#7BAFDE", "#4EB265", "#90C987", "#CAE0AB", "#F7EE55", "#F6C141", "#F1932D", "#E8601C", "#DC050C")) + theme_light()
 ```
+  
+**Answer**: Above we visualize the number of flights per year (in millions), by weekday. Notice that the weekly effect stays consistent over the years.
 
-
-(d). Map top 10 destinations from LAX. Size of dots should reflect the number of flights from LAX to that destination.
-
-
-```{r}
-fromLAX = flights_tbl %>% 
-  filter(cancelled == 0, origin == "LAX", year >= 1998) %>%
-group_by(dest) %>% summarise(n_fromLAX = count()) %>% collect()
-
-top10destfromLAXnames = fromLAX$dest[1:10]
-top10destfromLAX = fromLAX[1:10,]
-```
+  
+    (d). Map top 10 destinations from LAX. Size of dots should reflect the number of flights from LAX to that destination.
+    
+4. Build a predictive model for the arrival delay (`arrdelay`) of flights flying from LAX. Use the same filtering criteria as in the [lecture notes](http://hua-zhou.github.io/teaching/biostatm280-2018winter/slides/12-sparklyr/sparklyr-flights.html) to construct training and validation sets. You are allowed to use a maximum of 5 predictors. The prediction performance of your model on the validation data set will be an important factor for grading this question.
 
 ```{r}
-top10destLAXLatLong = airports_tbl %>% 
-filter(faa %in% top10destfromLAXnames) %>% 
-select(AirportID = faa, Airport = name, Latitude = lat, Longitude = lon) %>% collect()
-
-top10fromLaxLatLong2 = left_join(top10destfromLAX, top10destLAXLatLong, by = c("dest" = "AirportID")) %>% filter(!is.na(Latitude)) %>% mutate(Latitude = as.numeric(Latitude), Longitude = as.numeric(Longitude))
-
-states = map_data("state")
-ggplot() + 
-      geom_polygon(data = states, aes(x = long, y = lat, fill = region, group = group), color = "white") + 
-      geom_point(data = top10fromLaxLatLong2, aes(x = Longitude, y = Latitude, size = `n_fromLAX`), color = "black") +
-      geom_point(data = top10fromLaxLatLong2, aes(x = Longitude, y = Latitude, size = `n_fromLAX`), color = "chartreuse") +
-      #geom_text(aes(x = Longitude, y = Latitude, label = as.character(top10busiestAirports)), check_overlap = TRUE) +
-      scale_size(name = "n_fromLAX", range = c(1, 5)) +
-      labs(x = "Longitude", y = "Latitude", title = "Top 10 Destinations from LAX") +
-      coord_fixed(1.5)
-```
-
-4. Predictive model for the arrival delay of flights flying from LAX
-
-```{r}
-
-model_data <- flights_tbl %>%
-    filter(!is.na(arrdelay) & !is.na(depdelay) & !is.na(distance) & origin == "LAX" & (cancelled == 0)) %>%
-    filter(depdelay > 15 & depdelay < 240) %>% #filter outliers
-    filter(arrdelay > -60 & arrdelay < 360) %>% #filter outliers
-    filter(year >= 2003 & year <= 2007) %>%
-    left_join(airlines_tbl, by = c("uniquecarrier" = "code")) %>% # merge by the columns
-    left_join(airports_tbl, by = c("dest" = "faa")) %>% 
-    filter(!is.na(tz_name) & !is.na(alt)) %>%
-    select(year, month, arrdelay, depdelay, destination = dest, distance, uniquecarrier, description, tz_name, alt) %>% collect()
-
-model_data = model_data %>% group_by(destination) %>% mutate(n = n())
-
-sumstat_modeldata = 
-  model_data %>%
-  group_by(uniquecarrier) %>%
-  summarize(description = min(description), arrivaldelay = mean(arrdelay), 
-            distance = mean(distance), depdelay = mean(depdelay), timezone = min(tz_name), altitude = mean(alt)) %>%
-  select(description, arrivaldelay, depdelay, distance, timezone, altitude) %>%
-  arrange(arrivaldelay)
-
-write.csv(file = "modeldata.csv", model_data, row.names = F)
-```
-
-
-```{r}
+#11
 fromLAX3 = flights_tbl %>%
     filter(!is.na(arrdelay) & !is.na(depdelay) & !is.na(distance) & origin == "LAX" & (cancelled == 0)) %>%
     filter(depdelay > 15 & depdelay < 240) %>% #filter outliers
@@ -363,15 +250,10 @@ fromLAX3 = flights_tbl %>%
     filter(!is.na(tz_name) & !is.na(alt)) %>%
     select(year, month, arrdelay, depdelay, destination = dest, distance, uniquecarrier, description, tz_name, alt) %>%
 group_by(destination) %>% mutate(n_fromLAX = count()) %>% arrange(desc(n_fromLAX))
-
-#fromLAX2 %>% mutate(Busy = as_factor(labelled(n_fromLAX,
- #                                     c(("0-100" %in% c(0:100)),  c(("100-500"%in% c(100:500)),
-  #                                                            c(("500-1000" %in% c(600:1000)), c((0 %in% c(0:100)))))) 
-
 ```
 
-
 ```{r}
+#12
 # Partition the data into training and validation sets
 model_partition <- fromLAX3 %>% 
   sdf_partition(train = 0.8, valid = 0.2, seed = 5555)
@@ -383,12 +265,10 @@ ml1 <- model_partition$train %>%
   
 summary(ml1)
 
-model_partition08 <- data_2008 %>% 
-  sdf_partition(train = 0.0, valid = 1.0, seed = 5555)
-
 ```
 
 ```{r}
+#13
   model_deciles <- lapply(model_partition, function(x) {
     sdf_predict(ml1, x) %>%
       mutate(decile = ntile(desc(prediction), 10)) %>%
@@ -400,6 +280,7 @@ model_partition08 <- data_2008 %>%
 ```
 
 ```{r}
+#14
 deciles <- rbind(
   data.frame(data = 'train', model_deciles$train),
   data.frame(data = 'valid', model_deciles$valid),
@@ -408,15 +289,16 @@ deciles <- rbind(
 ```
 
 ```{r}
+#15
 # Plot average gains by predicted decile
 deciles %>%
   ggplot(aes(factor(decile), arrdelay, fill = data)) +
   geom_bar(stat = 'identity', position = 'dodge') +
   labs(title = 'Average Arrival Delay by Predicted Decile', x = 'Decile', y = 'Minutes')
 ```
-
-
+    
 ```{r}
+#16
 data_2008 = flights_tbl %>%
     filter(!is.na(arrdelay) & !is.na(depdelay) & !is.na(distance) & origin == "LAX" & (cancelled == 0)) %>%
     filter(depdelay > 15 & depdelay < 240) %>% #filter outliers
@@ -425,26 +307,18 @@ data_2008 = flights_tbl %>%
     left_join(airlines_tbl, by = c("uniquecarrier" = "code")) %>% # merge by the columns
     left_join(airports_tbl, by = c("dest" = "faa")) %>% 
     filter(!is.na(tz_name) & !is.na(alt)) %>%
-    select(year, month, arrdelay, depdelay, destination = dest, distance, uniquecarrier, description, tz_name, alt)
+    select(year, month, arrdelay, depdelay, destination = dest, distance, uniquecarrier, description, tz_name, alt) %>% group_by(destination) %>% mutate(n_fromLAX = count()) %>% arrange(desc(n_fromLAX))
 
-group_by(destination) %>% mutate(n_fromLAX = count()) %>% arrange(desc(n_fromLAX))
-```
-
-```{r}
-data_2008 
-```
-
-```{r}
-carrier1 <- sdf_predict(x = data_2008, model = ml1) %>%
+carrier <- sdf_predict(x = data_2008, model = ml1) %>%
   group_by(description) %>% summarize(arrdelay = mean(arrdelay), prediction = mean(prediction), freq = n()) %>% filter(freq > 1000) %>% collect()
 
-ucar1 = sdf_predict(ml1, model_partition08$valid) %>%
-      group_by(description) %>%
-      summarize(arrdelay = mean(arrdelay), prediction = mean(prediction), freq = n()) %>% filter(freq > 1000) %>% collect()
 ```
 
 
+5. Visualize and explain any other information you want to explore.
+
 ```{r}
+#17
 # Plot actual gains and predicted gains by airline carrier
 ggplot(carrier, aes(arrdelay, prediction)) + 
   geom_point(alpha = 0.75, color = 'red', shape = 3) +
@@ -453,8 +327,14 @@ ggplot(carrier, aes(arrdelay, prediction)) +
   labs(title='Average Arrival Delay Forecast', x = 'Actual', y = 'Predicted')
 ```
 
+```{r}
 
-```{r, evaluate = FALSE, include = FALSE, echo = FALSE}
-spark_disconnect(sc)
 ```
 
+
+**Answer**:  
+
+
+```{r, evaluate = T, include = FALSE, echo = FALSE}
+spark_disconnect(sc)
+```
