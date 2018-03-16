@@ -1,0 +1,195 @@
+---
+title: "Biostat M280 Homework 4"
+subtitle: Due Mar 16 @ 11:59PM
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, cache = TRUE)
+if(!"pacman" %in% row.names(installed.packages())){install.packages("pacman") & load("pacman")}
+
+# these are packages you will need
+devtools::install_github("dkahle/ggmap")
+pacman::p_load(sparklyr, dplyr, ggplot2, ggmap, maps, mapdata, haven, ggrepel, pacman, lubridate, install = TRUE)
+```
+
+```{r}
+usa = map_data("usa")
+world = map_data("world")
+states = map_data("state")
+```
+
+```{r}
+Sys.setenv(SPARK_HOME="/usr/lib/spark")
+config <- spark_config()
+sc <- spark_connect(master = "local", config = config)
+```
+
+```{r}
+flights_tbl <- tbl(sc, 'flights')
+airlines_tbl <- tbl(sc, 'airlines')
+airports_tbl <- tbl(sc, 'airports')
+```
+
+```{r}
+flightzdest = flights_tbl %>% filter(cancelled == 0) %>% select(origin, dest) %>%
+group_by(dest) %>% summarise(n_dest = count()) %>%
+arrange(desc(n_dest)) %>% collect()
+
+flightzorigin = flights_tbl %>% filter(cancelled==0) %>% select(origin, dest) %>%
+group_by(origin) %>% summarise(n_origin = count()) %>%
+arrange(desc(n_origin)) %>% collect() 
+
+flightstotal = left_join(flightzorigin, flightzdest, by = c("origin" = "dest")) %>% mutate(N = (n_origin + n_dest)/1000000) %>% arrange(desc(N))
+
+names(flightstotal) = c("Airport", "n_origin", "n_dest", "Total Flights (in millions)")
+top10busiestAirports = flightstotal$Airport[1:10]
+```
+
+```{r}
+top10busiestLatLong = airports_tbl %>% 
+filter(faa %in% top10busiestAirports) %>% 
+select(AirportID = faa, Airport = name, Latitude = lat, Longitude = lon) %>% collect()
+
+top10busiestLatLong2 = left_join(flightstotal, top10busiestLatLong, by = c("Airport" = "AirportID")) %>% filter(!is.na(Latitude)) %>% mutate(Latitude = as.numeric(Latitude), Longitude = as.numeric(Longitude))
+```
+
+
+Our Apache Yarn cluster hosts the [flights](http://stat-computing.org/dataexpo/2009/the-data.html) data representing 123 million flights over 22 years. Read the [lecture notes](http://hua-zhou.github.io/teaching/biostatm280-2018winter/slides/12-sparklyr/sparklyr-flights.html) on how to access the Yarn cluster. Connect to the database using `sparklyr` and answer following questions. You can base your answers on a specific year or the whole data set.
+
+1. Map the top 10 busiest airports. Size of dots should reflect the number of flights through that destination.  
+Hint: You may find this tutorial on [Making Maps in R](http://eriqande.github.io/rep-res-web/lectures/making-maps-with-R.html) helpful.
+
+```{r}
+ggplot() + 
+      geom_polygon(data = states, aes(x = long, y = lat, fill = region, group = group), color = "white") + 
+      geom_point(data = top10busiestLatLong2, aes(x = Longitude, y = Latitude, size = `Total Flights (in millions)`), color = "black") +
+      geom_point(data = top10busiestLatLong2, aes(x = Longitude, y = Latitude, size = `Total Flights (in millions)`), color = "chartreuse") +
+      #geom_text(aes(x = Longitude, y = Latitude, label = as.character(top10busiestAirports)), check_overlap = TRUE) +
+      scale_size(name = "Total Flights (in millions)", range = c(1, 5)) +
+      labs(x = "Longitude", y = "Latitude", title = "Top 10 Busiest Airports in USA") +
+      coord_fixed(1.5)
+
+```
+
+2. Map the top 10 busiest direct routes. Size of lines should reflect the number of flights through that route.
+
+```{r}
+jointpath = flights_tbl %>% filter(cancelled==0 & !is.na(dest) & !is.na(origin)) %>% 
+group_by(dest, origin) %>% summarise(n_jointpath = count()) %>%
+arrange(desc(n_jointpath)) %>% collect()
+
+top10traveledpathDestination = jointpath$dest[1:10]
+top10traveledpathOrigin = jointpath$origin[1:10]
+
+pathlatitudelongitude = airports_tbl %>% 
+filter(faa %in% c(top10traveledpathDestination, top10traveledpathOrigin)) %>% 
+select(Airport = faa, Latitude = lat, Longitude = lon) %>% collect()
+
+top10busiestpath = jointpath[1:10, ] 
+
+top10buspathwithlatlong1 = left_join(top10busiestpath, pathlatitudelongitude, by = c("dest" = "Airport"))
+top10buspathwithlatlong2 = left_join(top10busiestpath, pathlatitudelongitude, by = c("origin" = "Airport"))
+
+top10busiestpathLL = full_join(top10buspathwithlatlong1, top10buspathwithlatlong2, by = "n_jointpath")
+testlong = bind_rows(top10buspathwithlatlong1, top10buspathwithlatlong2)
+
+
+#top10busiestpathLL = top10busiestpathLL[,-c(7:9)]
+#names(top10busiestpathLL) = c("Destination", "Origin", "N_path", "Path", "Lat.D", "Long.D", "Lat.O", "Long.O")
+
+
+long10busypath = testlong %>%
+mutate(Latitudes = as.numeric(Latitude), Longitudes = as.numeric(Longitude)) %>% select(Destination = dest, Origin = origin, N_path = n_jointpath, Latitudes, Longitudes)
+
+
+ggplot() + 
+geom_polygon(data = states, 
+aes(x = long, y = lat, group = group, fill = region), color = "white") +
+coord_fixed(1.3) + 
+geom_point(data = long10busypath, aes(x = Longitudes, y = Latitudes), color = "black") + 
+geom_curve(data = top10busiestpathLL, aes(x = as.numeric(Longitude.x), y = as.numeric(Latitude.x), xend = as.numeric(Longitude.y), yend = as.numeric(Latitude.y))) +
+labs(title = "Map of Top 10 Busiest Routes", 
+x = "Longitude (Degrees)", y = "Latitude (Degrees)") 
+
+#+ geom_label_repel(data = long10busypath,  aes(x = Longitudes, y = Latitudes), label = long10busypath$Destination)
+```
+
+
+3. LAX:
+  
+    <p align="center">
+    ![](./lax-by-day-98-08.png)
+    </p>
+
+    (a). Reproduce above plot. Visualize and explain some prominent features you observe. For example, what happened at points 1-5?
+    
+```{r}
+LAXflightsbyday = flights_tbl %>% 
+  filter(cancelled == 0 & (origin == "LAX" | dest == "LAX") & year >= 1998) %>%
+group_by(year, month, dayofmonth) %>% summarise(n = count()) %>% collect()
+
+LAXflightsbyday %>% arrange(year, month, dayofmonth) %>% mutate(date = make_date(year = year, month = month, day = dayofmonth)) %>% ggplot() + geom_line(aes(x = date, y = n)) + coord_cartesian(ylim = c(800, 1400)) + labs(title = "LAX air traffic") +   geom_label(aes(x = make_date(2001, 10, 01), y = 1076, label = "1")) +
+      geom_label(aes(x = make_date(2004, 11, 25), y = 1019, label = "2")) +
+      geom_label(aes(x = make_date(2004, 07, 04), y = 1060, label = "3")) +
+      geom_label(aes(x = make_date(2008, 01, 01), y = 1292, label = "4")) +
+      geom_label(aes(x = make_date(2001, 01, 01), y = 1299, label = "5"))
+
+```
+
+    (b). Visualize and explain seasonal effects.
+    
+```{r}
+
+LAXseason1 = flights_tbl %>% 
+  filter(cancelled == 0 & (origin == "LAX" | dest == "LAX") & year >= 1998) %>% group_by(year, month) %>% summarise(peryearmonth = count()) %>% collect()
+
+LAXseason2 = LAXseason1 %>%
+      mutate(season = as_factor(labelled(month,
+                                      c("Winter" = 12, "Winter" = 1, "Winter" = 2,
+                                        "Spring" = 3, "Spring" = 4, "Spring" = 5,
+                                        "Summer" = 6, "Summer" = 7, "Summer" = 8,
+                                        "Autumn" = 9, "Autumn" = 10, "Autumn" = 11)))) 
+
+LAXseason2 = LAXseason2 %>% group_by(year, season) %>% mutate(n_season = sum(peryearmonth))
+
+    
+    LAXseason2 %>% group_by(year) %>% ggplot(aes(x = as.factor(year), y = n_season / 1000000, fill = season)) + 
+      geom_bar(stat = "identity") +
+      labs(title = "LAX Air Traffic Seasonal Effects",
+           x = "Year", y = "Flights (in millions)", fill = "Season") + scale_fill_manual(values = c("lightblue1", "powderblue", "lightblue3", "lightblue4")) + theme_light()
+
+```
+  
+    (c). Visualize and explain weekly effects.
+    
+```{r}
+LAXflightsbyweek = flights_tbl %>% 
+  filter(cancelled == 0, origin == "LAX" | dest == "LAX", year >= 1998, !is.na(dayofweek)) %>%
+group_by(dayofweek) %>% mutate(n_week = count()) %>% select(year, dayofweek, n_week) %>% collect()
+
+LAXweek1 = flights_tbl %>% 
+  filter(cancelled == 0 & (origin == "LAX" | dest == "LAX") & year >= 1998 & !is.na(dayofweek)) %>% group_by(year, dayofweek) %>% 
+  summarise(peryearday = count()) %>% collect()
+
+LAXweek2 = LAXweek1 %>%
+      mutate(Weekday = as_factor(labelled(dayofweek,
+                                      c("Monday" = 1, "Tuesday" = 2, "Wednesday" = 3,
+                                        "Thursday" = 4, "Friday" = 5, "Saturday" = 6,
+                                        "Sunday" = 7)))) 
+
+LAXweek2 = LAXweek2 %>% group_by(year, Weekday) %>% mutate(n_weekday = sum(peryearday))
+
+    
+    LAXweek2 %>% ggplot(aes(x = as.factor(year), y = n_weekday / 1000000, fill = Weekday)) + 
+      geom_bar(stat = "identity") +
+      labs(title = "LAX Air Traffic Weekly Effects",
+           x = "Year", y = "Flights (in millions)", fill = "Weekday") + scale_fill_manual(values = c("#882E72", "#B178A6", "#D6C1DE", "#1965B0", "#5289C7", "#7BAFDE", "#4EB265", "#90C987", "#CAE0AB", "#F7EE55", "#F6C141", "#F1932D", "#E8601C", "#DC050C")) + theme_light()
+```
+  
+    (d). Map top 10 destinations from LAX. Size of dots should reflect the number of flights from LAX to that destination.
+    
+4. Build a predictive model for the arrival delay (`arrdelay`) of flights flying from LAX. Use the same filtering criteria as in the [lecture notes](http://hua-zhou.github.io/teaching/biostatm280-2018winter/slides/12-sparklyr/sparklyr-flights.html) to construct training and validation sets. You are allowed to use a maximum of 5 predictors. The prediction performance of your model on the validation data set will be an important factor for grading this question.
+    
+5. Visualize and explain any other information you want to explore.
