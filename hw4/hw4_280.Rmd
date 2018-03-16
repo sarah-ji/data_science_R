@@ -1,11 +1,12 @@
 ---
 title: "Biostat M280 Homework 4"
 subtitle: Due Mar 16 @ 11:59PM
+author: Sarah Ji
 output: html_document
 ---
 
 ```{r setup, include=FALSE, echo= FALSE}
-knitr::opts_chunk$set(echo = TRUE, cache = TRUE, error = TRUE)
+knitr::opts_chunk$set(echo = FALSE, cache = TRUE, error = TRUE)
 if(!"pacman" %in% row.names(installed.packages())){install.packages("pacman") & load("pacman")}
 
 # these are packages you will need
@@ -24,7 +25,7 @@ states = map_data("state")
 #2
 Sys.setenv(SPARK_HOME="/usr/lib/spark")
 config <- spark_config()
-sc <- spark_connect(master = "local", config = config)
+sc <- spark_connect(master = "yarn-client", config = config)
 ```
 
 ```{r}
@@ -300,17 +301,15 @@ deciles %>%
 ```{r}
 #16
 data_2008 = flights_tbl %>%
-    filter(!is.na(arrdelay) & !is.na(depdelay) & !is.na(distance) & origin == "LAX" & (cancelled == 0)) %>%
-    filter(depdelay > 15 & depdelay < 240) %>% #filter outliers
+    filter(!is.na(arrdelay) & !is.na(depdelay) & !is.na(distance) & origin == "LAX" & (cancelled == 0)) %>% filter(depdelay > 15 & depdelay < 240) %>% #filter outliers
     filter(arrdelay > -60 & arrdelay < 360) %>% #filter outliers
     filter(year == 2008) %>%
-    left_join(airlines_tbl, by = c("uniquecarrier" = "code")) %>% # merge by the columns
     left_join(airports_tbl, by = c("dest" = "faa")) %>% 
     filter(!is.na(tz_name) & !is.na(alt)) %>%
-    select(year, month, arrdelay, depdelay, destination = dest, distance, uniquecarrier, description, tz_name, alt) %>% group_by(destination) %>% mutate(n_fromLAX = count()) %>% arrange(desc(n_fromLAX))
+    select(year, month, arrdelay, depdelay, dest, distance, uniquecarrier, tz_name, alt)
 
-carrier <- sdf_predict(x = data_2008, model = ml1) %>%
-  group_by(description) %>% summarize(arrdelay = mean(arrdelay), prediction = mean(prediction), freq = n()) %>% filter(freq > 1000) %>% collect()
+
+decile2008 <- sdf_predict(x = data_2008, model = ml1) %>% select(arrdelay, uniquecarrier, prediction)
 
 ```
 
@@ -319,15 +318,44 @@ carrier <- sdf_predict(x = data_2008, model = ml1) %>%
 
 ```{r}
 #17
-# Plot actual gains and predicted gains by airline carrier
-ggplot(carrier, aes(arrdelay, prediction)) + 
-  geom_point(alpha = 0.75, color = 'red', shape = 3) +
-  geom_abline(intercept = 0, slope = 1, alpha = 0.15, color = 'blue') +
-  geom_text(aes(label = substr(description, 1, 20)), size = 3, alpha = 0.75, vjust = -1) +
-  labs(title='Average Arrival Delay Forecast', x = 'Actual', y = 'Predicted')
+pre911 = model_data_pre911 %>% group_by(description , year) %>% summarise(arrivaldelay = mean(arrdelay))
+
+post911 = model_data %>% group_by(description , year) %>% summarise(arrivaldelay = mean(arrdelay))
+
+pre911 %>% group_by(year, description) %>% ggplot(aes(x = as.factor(year), y = mean(arrivaldelay))) + geom_bar(stat = "identity") +
+      labs(title = "LAX Air Traffic Pre - 9/11",
+           x = "Year", y = "Mean Arrival Delay")
+
+post911 %>% group_by(year, description) %>% ggplot(aes(x = as.factor(year), y = mean(arrivaldelay))) + geom_bar(stat = "identity") +
+      labs(title = "LAX Air Traffic Post - 9/11",
+           x = "Year", y = "Mean Arrival Delay")
+
+model_data %>%
+  mutate(id = row_number()) %>%
+  select(x, y, z, id) %>%
+  gather(variable, value, -id)  %>%
+  ggplot(aes(x = value)) +
+  geom_histogram(bins = 500) +
+  geom_rug() +
+  facet_grid(variable ~ .)
+
 ```
 
 ```{r}
+#deciles %>% mutate(sum = sum()) %>%
+#    ggplot(aes(sched_dep_time)) +
+#    geom_density() +
+#    facet_grid(~cancelled) + 
+#    labs(title = "Departure Time Cancelled (T) vs. Not Cancelled (F) Flights")
+
+data.frame(data = 'train', data_2008)
+
+ggplot() + geom_boxploth(aes(x = tz_name, y = arrdelay,
+                                     colour = cut_number(distance , 10)))
+
+LAXseason2 %>% group_by(year) %>% ggplot(aes(x = as.factor(year), y = n_season / 1000000, fill = season)) + geom_bar(stat = "identity") +
+      labs(title = "LAX Air Traffic Seasonal Effects",
+           x = "Year", y = "Flights (in millions)", fill = "Season") + scale_fill_manual(values = c("lightblue1", "powderblue", "lightblue3", "lightblue4")) + theme_light()
 
 ```
 
