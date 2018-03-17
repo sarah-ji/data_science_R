@@ -5,13 +5,15 @@ author: Sarah Ji
 output: html_document
 ---
 
-```{r setup, include=FALSE, echo= FALSE}
+```{r setup, include = FALSE, echo= FALSE, cache = TRUE, warning = FALSE}
 knitr::opts_chunk$set(echo = FALSE, cache = TRUE, error = TRUE, warning = FALSE)
-if(!"pacman" %in% row.names(installed.packages())){install.packages("pacman") & load("pacman")}
+if(!"pacman" %in% row.names(installed.packages())){install.packages("pacman") & 
+    load("pacman")}
 
 # these are packages you will need
 devtools::install_github("dkahle/ggmap")
-pacman::p_load(sparklyr, dplyr, ggplot2, ggmap, maps, mapdata, haven, ggrepel, pacman, lubridate, install = TRUE)
+pacman::p_load(sparklyr, dplyr, ggplot2, ggmap, maps, mapdata, haven, ggrepel,
+               pacman, lubridate, install = TRUE)
 ```
 
 ```{r}
@@ -25,7 +27,7 @@ states = map_data("state")
 #2
 Sys.setenv(SPARK_HOME="/usr/lib/spark")
 config <- spark_config()
-sc <- spark_connect(master = "local", config = config)
+sc <- spark_connect(master = "yarn-client", config = config)
 ```
 
 ```{r}
@@ -37,17 +39,20 @@ airports_tbl <- tbl(sc, 'airports')
 
 ```{r}
 #4
-flightzdest = flights_tbl %>% filter(cancelled == 0) %>% select(origin, dest) %>%
-group_by(dest) %>% summarise(n_dest = count()) %>%
-arrange(desc(n_dest)) %>% collect()
+flightzdest = flights_tbl %>% filter(cancelled == 0) %>% 
+  select(origin, dest) %>% group_by(dest) %>% summarise(n_dest = count()) %>%
+  arrange(desc(n_dest)) %>% collect()
 
-flightzorigin = flights_tbl %>% filter(cancelled==0) %>% select(origin, dest) %>%
-group_by(origin) %>% summarise(n_origin = count()) %>%
-arrange(desc(n_origin)) %>% collect() 
+flightzorigin = flights_tbl %>% filter(cancelled==0) %>% 
+  select(origin, dest) %>% group_by(origin) %>% 
+  summarise(n_origin = count()) %>% arrange(desc(n_origin)) %>% collect() 
 
-flightstotal = left_join(flightzorigin, flightzdest, by = c("origin" = "dest")) %>% mutate(N = (n_origin + n_dest)/1000000) %>% arrange(desc(N))
+flightstotal = left_join(flightzorigin, flightzdest, 
+                         by = c("origin" = "dest")) %>%
+  mutate(N = (n_origin + n_dest)/1000000) %>% arrange(desc(N))
 
-names(flightstotal) = c("Airport", "n_origin", "n_dest", "Total Flights (in millions)")
+names(flightstotal) = c("Airport", "n_origin", "n_dest", 
+                        "Total Flights (in millions)")
 top10busiestAirports = flightstotal$Airport[1:10]
 ```
 
@@ -55,9 +60,13 @@ top10busiestAirports = flightstotal$Airport[1:10]
 #5
 top10busiestLatLong = airports_tbl %>% 
 filter(faa %in% top10busiestAirports) %>% 
-select(AirportID = faa, Airport = name, Latitude = lat, Longitude = lon) %>% collect()
+select(AirportID = faa, Airport = name, Latitude = lat, Longitude = lon) %>%
+  collect()
 
-top10busiestLatLong2 = left_join(flightstotal, top10busiestLatLong, by = c("Airport" = "AirportID")) %>% filter(!is.na(Latitude)) %>% mutate(Latitude = as.numeric(Latitude), Longitude = as.numeric(Longitude))
+top10busiestLatLong2 = left_join(flightstotal, top10busiestLatLong, 
+                                 by = c("Airport" = "AirportID")) %>% 
+filter(!is.na(Latitude)) %>% 
+mutate(Latitude = as.numeric(Latitude), Longitude = as.numeric(Longitude))
 ```
 
 
@@ -69,12 +78,18 @@ Hint: You may find this tutorial on [Making Maps in R](http://eriqande.github.io
 ```{r}
 #6
 ggplot() + 
-      geom_polygon(data = states, aes(x = long, y = lat, fill = region, group = group), color = "white") + 
-      geom_point(data = top10busiestLatLong2, aes(x = Longitude, y = Latitude, size = `Total Flights (in millions)`), color = "black") +
-      geom_point(data = top10busiestLatLong2, aes(x = Longitude, y = Latitude, size = `Total Flights (in millions)`), color = "chartreuse") +
-      #geom_text(aes(x = Longitude, y = Latitude, label = as.character(top10busiestAirports)), check_overlap = TRUE) +
-      scale_size(name = "Total Flights (in millions)", range = c(1, 5)) +
-      labs(x = "Longitude", y = "Latitude", title = "Top 10 Busiest Airports in USA") +
+      geom_polygon(data = states,
+      aes(x = long, y = lat, fill = region, group = group), color = "white") + 
+      geom_point(data = top10busiestLatLong2, 
+      aes(x = Longitude, y = Latitude,
+          size = `Total Flights (in millions)`), color = "black") +
+      geom_point(data = top10busiestLatLong2,
+                 aes(x = Longitude, y = Latitude,
+                size = `Total Flights (in millions)`), color = "chartreuse") +
+
+        scale_size(name = "Total Flights (in millions)", range = c(1, 5)) +
+      labs(x = "Longitude", y = "Latitude",
+           title = "Top 10 Busiest Airports in USA") +
       coord_fixed(1.5)  + theme(legend.position="none")
 ```
 
@@ -85,7 +100,8 @@ ggplot() +
 
 ```{r, eval = T}
 #7
-jointpath = flights_tbl %>% filter(cancelled==0 & !is.na(dest) & !is.na(origin)) %>% 
+jointpath = flights_tbl %>%
+  filter(cancelled==0 & !is.na(dest) & !is.na(origin)) %>% 
 group_by(dest, origin) %>% summarise(n_jointpath = count()) %>%
 arrange(desc(n_jointpath)) %>% collect()
 
@@ -96,35 +112,35 @@ pathlatitudelongitude = airports_tbl %>%
 filter(faa %in% c(top10traveledpathDestination, top10traveledpathOrigin)) %>% 
 select(Airport = faa, Latitude = lat, Longitude = lon) %>% collect()
 
-top10buspathwithlatlong1 = left_join(jointpath[1:10, ], pathlatitudelongitude, by = c("dest" = "Airport"))
+top10buspathwithlatlong1 = left_join(jointpath[1:10, ],
+                            pathlatitudelongitude, by = c("dest" = "Airport"))
+top10buspathwithlatlong2 = left_join(jointpath[1:10, ],
+                          pathlatitudelongitude, by = c("origin" = "Airport"))
 
-
-
-top10buspathwithlatlong2 = left_join(jointpath[1:10, ], pathlatitudelongitude, by = c("origin" = "Airport"))
-
-top10busiestpathLL = full_join(top10buspathwithlatlong1, top10buspathwithlatlong2, by = "n_jointpath")
+top10busiestpathLL = full_join(top10buspathwithlatlong1,
+                               top10buspathwithlatlong2, by = "n_jointpath")
 testlong = bind_rows(top10buspathwithlatlong1, top10buspathwithlatlong2)
 
-
-#top10busiestpathLL = top10busiestpathLL[,-c(7:9)]
-#names(top10busiestpathLL) = c("Destination", "Origin", "N_path", "Path", "Lat.D", "Long.D", "Lat.O", "Long.O")
-
-
 long10busypath = testlong %>%
-mutate(Latitudes = as.numeric(Latitude), Longitudes = as.numeric(Longitude)) %>% select(Destination = dest, Origin = origin, N_path = n_jointpath, Latitudes, Longitudes)
+mutate(Latitudes = as.numeric(Latitude),
+       Longitudes = as.numeric(Longitude)) %>%
+select(Destination = dest, Origin = origin,
+       N_path = n_jointpath, Latitudes, Longitudes)
 
 
 ggplot() + 
 geom_polygon(data = states, 
 aes(x = long, y = lat, group = group, fill = region), color = "white") +
 coord_fixed(1.3) + 
-geom_point(data = long10busypath, aes(x = Longitudes, y = Latitudes), color = "black") + 
-geom_curve(data = top10busiestpathLL, aes(x = as.numeric(Longitude.x), y = as.numeric(Latitude.x), xend = as.numeric(Longitude.y), yend = as.numeric(Latitude.y))) +
+geom_point(data = long10busypath,
+           aes(x = Longitudes, y = Latitudes), color = "black") + 
+geom_curve(data = top10busiestpathLL,
+           aes(x = as.numeric(Longitude.x), y = as.numeric(Latitude.x),
+            xend = as.numeric(Longitude.y), yend = as.numeric(Latitude.y))) +
 labs(title = "Map of Top 10 Busiest Routes", 
-x = "Longitude (Degrees)", y = "Latitude (Degrees)")  + theme(legend.position="none")
+x = "Longitude (Degrees)", y = "Latitude (Degrees)") +
+  theme(legend.position="none")
 
-
-#+ geom_label_repel(data = long10busypath,  aes(x = Longitudes, y = Latitudes), label = long10busypath$Destination)
 ```
 
 **Answer**: The top 10 busiest direct routes with the highest number of flights through that route are:
@@ -151,7 +167,11 @@ LAXflightsbyday = flights_tbl %>%
   filter(cancelled == 0 & (origin == "LAX" | dest == "LAX") & year >= 1998) %>%
 group_by(year, month, dayofmonth) %>% summarise(n = count()) %>% collect()
 
-LAXflightsbyday %>% arrange(year, month, dayofmonth) %>% mutate(date = make_date(year = year, month = month, day = dayofmonth)) %>% ggplot() + geom_line(aes(x = date, y = n)) + coord_cartesian(ylim = c(800, 1400)) + labs(title = "LAX air traffic") +   geom_label(aes(x = make_date(2001, 10, 01), y = 1076, label = "1")) +
+LAXflightsbyday %>% arrange(year, month, dayofmonth) %>% 
+  mutate(date = make_date(year = year, month = month, day = dayofmonth)) %>%
+  ggplot() + geom_line(aes(x = date, y = n)) + 
+  coord_cartesian(ylim = c(800, 1400)) + labs(title = "LAX air traffic") + 
+  geom_label(aes(x = make_date(2001, 10, 01), y = 1076, label = "1")) +
       geom_label(aes(x = make_date(2004, 11, 25), y = 1019, label = "2")) +
       geom_label(aes(x = make_date(2004, 07, 04), y = 1060, label = "3")) +
       geom_label(aes(x = make_date(2008, 01, 01), y = 1292, label = "4")) +
@@ -181,22 +201,27 @@ http://www.latimes.com/travel/la-trw-airbus18mar18-story.html
 ```{r, eval = TRUE}
 #9
 LAXseason1 = flights_tbl %>% 
-  filter(cancelled == 0 & (origin == "LAX" | dest == "LAX") & year >= 1998) %>% group_by(year, month) %>% summarise(peryearmonth = count()) %>% collect()
+  filter(cancelled == 0 & (origin == "LAX" | dest == "LAX") & year >= 1998) %>%
+  group_by(year, month) %>% summarise(peryearmonth = count()) %>% collect()
 
 LAXseason2 = LAXseason1 %>%
       mutate(season = as_factor(labelled(month,
-                                      c("Winter" = 12, "Winter" = 1, "Winter" = 2,
-                                        "Spring" = 3, "Spring" = 4, "Spring" = 5,
-                                        "Summer" = 6, "Summer" = 7, "Summer" = 8,
-                                        "Autumn" = 9, "Autumn" = 10, "Autumn" = 11)))) 
+                                c("Winter" = 12, "Winter" = 1, "Winter" = 2,
+                                 "Spring" = 3, "Spring" = 4, "Spring" = 5,
+                                 "Summer" = 6, "Summer" = 7, "Summer" = 8,
+                                 "Autumn" = 9, "Autumn" = 10, "Autumn" = 11)))) 
 
-LAXseason2 = LAXseason2 %>% group_by(year, season) %>% mutate(n_season = sum(peryearmonth))
+LAXseason2 = LAXseason2 %>% group_by(year, season) %>%
+  mutate(n_season = sum(peryearmonth))
 
     
-    LAXseason2 %>% group_by(year) %>% ggplot(aes(x = as.factor(year), y = n_season / 1000000, fill = season)) + 
+    LAXseason2 %>% group_by(year) %>% 
+      ggplot(aes(x = as.factor(year), y = n_season / 1000000, fill = season)) + 
       geom_bar(stat = "identity") +
       labs(title = "LAX Air Traffic Seasonal Effects",
-           x = "Year", y = "Flights (in millions)", fill = "Season") + scale_fill_manual(values = c("lightblue1", "powderblue", "lightblue3", "lightblue4")) + theme_light()
+           x = "Year", y = "Flights (in millions)", fill = "Season") +
+scale_fill_manual(values = c("lightblue1", "powderblue",
+                             "lightblue3", "lightblue4")) + theme_light()
 
 ```
   
@@ -209,26 +234,34 @@ reconsider it when you see how much ticket prices increase for the coveted summe
 ```{r, eval = TRUE}
 #10
 LAXflightsbyweek = flights_tbl %>% 
-  filter(cancelled == 0, origin == "LAX" | dest == "LAX", year >= 1998, !is.na(dayofweek)) %>%
-group_by(dayofweek) %>% mutate(n_week = count()) %>% select(year, dayofweek, n_week) %>% collect()
+  filter(cancelled == 0, origin == "LAX" | dest == "LAX", year >= 1998,
+         !is.na(dayofweek)) %>%
+group_by(dayofweek) %>% mutate(n_week = count()) %>% 
+  select(year, dayofweek, n_week) %>% collect()
 
 LAXweek1 = flights_tbl %>% 
-  filter(cancelled == 0 & (origin == "LAX" | dest == "LAX") & year >= 1998 & !is.na(dayofweek)) %>% group_by(year, dayofweek) %>% 
+  filter(cancelled == 0 & (origin == "LAX" | dest == "LAX") &
+           year >= 1998 & !is.na(dayofweek)) %>% group_by(year, dayofweek) %>% 
   summarise(peryearday = count()) %>% collect()
 
 LAXweek2 = LAXweek1 %>%
       mutate(Weekday = as_factor(labelled(dayofweek,
-                                      c("Monday" = 1, "Tuesday" = 2, "Wednesday" = 3,
-                                        "Thursday" = 4, "Friday" = 5, "Saturday" = 6,
-                                        "Sunday" = 7)))) 
+                        c("Monday" = 1, "Tuesday" = 2, "Wednesday" = 3,
+                        "Thursday" = 4, "Friday" = 5, "Saturday" = 6,
+                        "Sunday" = 7)))) 
 
-LAXweek2 = LAXweek2 %>% group_by(year, Weekday) %>% mutate(n_weekday = sum(peryearday))
+LAXweek2 = LAXweek2 %>% group_by(year, Weekday) %>%
+  mutate(n_weekday = sum(peryearday))
 
     
-    LAXweek2 %>% ggplot(aes(x = as.factor(year), y = n_weekday / 1000000, fill = Weekday)) + 
-      geom_bar(stat = "identity") +
-      labs(title = "LAX Air Traffic Weekly Effects",
-           x = "Year", y = "Flights (in millions)", fill = "Weekday") + scale_fill_manual(values = c("#882E72", "#B178A6", "#D6C1DE", "#1965B0", "#5289C7", "#7BAFDE", "#4EB265", "#90C987", "#CAE0AB", "#F7EE55", "#F6C141", "#F1932D", "#E8601C", "#DC050C")) + theme_light()
+LAXweek2 %>% ggplot(aes(x = as.factor(year), 
+                        y = n_weekday / 1000000, fill = Weekday)) + 
+geom_bar(stat = "identity") +
+labs(title = "LAX Air Traffic Weekly Effects", x = "Year", 
+     y = "Flights (in millions)", fill = "Weekday") +
+  scale_fill_manual(values = c("#882E72", "#B178A6", "#D6C1DE", "#1965B0", 
+  "#5289C7", "#7BAFDE", "#4EB265", "#90C987", "#CAE0AB", "#F7EE55", "#F6C141",
+  "#F1932D", "#E8601C", "#DC050C")) + theme_light()
 ```
   
 **Answer**: Above we visualize the number of flights per year (in millions), by weekday. Notice that the weekly effect stays consistent over the years.
@@ -241,15 +274,16 @@ LAXweek2 = LAXweek2 %>% group_by(year, Weekday) %>% mutate(n_weekday = sum(perye
 ```{r}
 #11
 fromLAX3 = flights_tbl %>%
-    filter(!is.na(arrdelay) & !is.na(depdelay) & !is.na(distance) & origin == "LAX" & (cancelled == 0)) %>%
+    filter(!is.na(arrdelay) & !is.na(depdelay) & !is.na(distance) &
+             origin == "LAX" & (cancelled == 0)) %>%
     filter(depdelay > 15 & depdelay < 240) %>% #filter outliers
     filter(arrdelay > -60 & arrdelay < 360) %>% #filter outliers
     filter(year >= 2003 & year <= 2007) %>%
-    left_join(airlines_tbl, by = c("uniquecarrier" = "code")) %>% # merge by the columns
+    left_join(airlines_tbl, by = c("uniquecarrier" = "code")) %>% # 
     left_join(airports_tbl, by = c("dest" = "faa")) %>% 
     filter(!is.na(tz_name) & !is.na(alt)) %>%
-    select(year, month, arrdelay, depdelay, destination = dest, distance, uniquecarrier, description, tz_name, alt) %>%
-group_by(destination) %>% mutate(n_fromLAX = count()) %>% arrange(desc(n_fromLAX))
+    select(year, month, arrdelay, depdelay, destination = dest,
+           distance, uniquecarrier, description, tz_name, alt)
 
 
 ```
@@ -263,7 +297,8 @@ model_partition <- fromLAX3 %>%
 # Fit a linear model
 
 ml1 <- model_partition$train %>%
-    ml_linear_regression(arrdelay ~ distance + depdelay + uniquecarrier + tz_name + alt)
+  ml_linear_regression(arrdelay ~ distance + depdelay +
+                         uniquecarrier + tz_name + alt)
   
 summary(ml1)
 
@@ -296,21 +331,48 @@ deciles <- rbind(
 deciles %>%
   ggplot(aes(factor(decile), arrdelay, fill = data)) +
   geom_bar(stat = 'identity', position = 'dodge') +
-  labs(title = 'Average Arrival Delay by Predicted Decile', x = 'Decile', y = 'Minutes')
+  labs(title = 'Average Arrival Delay by Predicted Decile',
+       x = 'Decile', y = 'Minutes')
+
+timeandalt = airports_tbl %>% select(tz_name, alt, faa)
+data_08 <- flights_tbl %>%
+    filter(!is.na(arrdelay) & !is.na(depdelay) & !is.na(distance) &
+             origin == "LAX" & (cancelled == 0)) %>%
+    filter(depdelay > 15 & depdelay < 240) %>% #filter outliers
+    filter(arrdelay > -60 & arrdelay < 360) %>% #filter outliers
+    filter(year == 2008) %>%
+    left_join(airlines_tbl, by = c("uniquecarrier" = "code")) %>% # merge by the columns
+    select(year, month, arrdelay, depdelay, destination = dest, distance,
+           uniquecarrier, description) %>%
+    inner_join(timeandalt, by = c("destination" = "faa")) %>%
+  select(year, month, arrdelay, depdelay, destination, distance, uniquecarrier,
+         description, tz_name, alt)
 ```
     
 ```{r}
 #16
-data08 = fromLAX3 %>% filter(year == 2008 & !is.na(tz_name) & !is.na(alt)) %>% select(uniquecarrier, tzname, arrdelay, alt, depdelay, distance)
+data_2008 <- flights_tbl %>%
+    filter(!is.na(arrdelay) & !is.na(depdelay) & !is.na(distance) 
+           & origin == "LAX" & (cancelled == 0)) %>%
+    filter(depdelay > 15 & depdelay < 240) %>% #filter outliers
+    filter(arrdelay > -60 & arrdelay < 360) %>% #filter outliers
+    filter(year == 2008) %>%
+    left_join(airlines_tbl, by = c("uniquecarrier" = "code")) %>% # merge by the columns
+    left_join(airports_tbl, by = c("dest" = "faa")) %>% 
+    filter(!is.na(tz_name) & !is.na(alt)) %>%
+    select(year, month, arrdelay, depdelay, destination = dest, distance,
+           uniquecarrier, description, tz_name, alt)
 
-carrier <- sdf_predict(x = data08, model = ml1) %>%
-  group_by(uniquecarrier) %>% summarize(arrdelay = mean(arrdelay), prediction = mean(prediction), freq = n()) %>% filter(freq > 500) %>% collect()
+carrier <- sdf_predict(ml1, data_08)%>% group_by(description) %>%
+summarize(gain = mean(arrdelay), prediction = mean(prediction), freq = n()) %>%
+filter(freq > 10000) %>% collect()
 
 # Plot actual gains and predicted gains by airline carrier
 ggplot(carrier, aes(arrdelay, prediction)) + 
   geom_point(alpha = 0.75, color = 'red', shape = 3) +
   geom_abline(intercept = 0, slope = 1, alpha = 0.15, color = 'blue') +
-  geom_text(aes(label = substr(description, 1, 20)), size = 3, alpha = 0.75, vjust = -1) +
+  geom_text(aes(label = substr(description, 1, 20)), size = 3, 
+            alpha = 0.75, vjust = -1) +
   labs(title='Average Arrival Delay Forecast', x = 'Actual', y = 'Predicted')
 
 ```
@@ -325,45 +387,15 @@ To confirm the predictive performance of our model, we plot the average arrival 
 5. Visualize and explain any other information you want to explore.
 
 ```{r}
-#17
-data_post911 = fromLAX3 
+plotn = data_2008 %>% group_by(tz_name) %>% 
+  summarize(arrdelay = mean(arrdelay), distance = mean(distance)) %>% collect()
 
-pre911 = flights_tbl %>% filter(year <= 2001) %>%
-    filter(!is.na(arrdelay) & !is.na(depdelay) & !is.na(distance) & origin == "LAX" & (cancelled == 0)) %>%
-    filter(depdelay > 15 & depdelay < 240) %>% #filter outliers
-    filter(arrdelay > -60 & arrdelay < 360) %>% #filter outliers
-    left_join(airlines_tbl, by = c("uniquecarrier" = "code")) %>% # merge by the columns
-    inner_join(airports_tbl, by = c("dest" = "faa")) %>% 
-    filter(!is.na(tz_name) & !is.na(alt)) %>%
-    select(year, month, arrdelay, depdelay, destination = dest, distance, uniquecarrier, description, tz_name, alt) %>% group_by(uniquecarrier) %>% summarise(arrivaldelay = mean(arrdelay)) %>% collect()
-
-post911 = data_post911 %>% group_by(uniquecarrier) %>% summarise(arrivaldelay = mean(arrdelay)) %>% collect()
-
-nineleven = inner_join(pre911, post911, by = "uniquecarrier")
-names(nineleven) = c("uniquecarrier", "arrivaldelay", "arrivaldelay")
-
-nineeleven <- rbind(
-  data.frame(data = 'pre911', nineleven[,c(1,2)]),
-  data.frame(data = 'post911', nineleven[,c(1,3)]),
-  make.row.names = FALSE
-)
-
-nineeleven %>%
-  ggplot(aes(factor(uniquecarrier), arrivaldelay, fill = data)) +
-  geom_bar(stat = 'identity', position = 'dodge') +
-  labs(title = 'Average Arrival Delay Pre and Post 9/11 (2001)', x = 'Unique Carrier', y = 'Minutes')
-
-```
-
-```{r}
-plotn = data08 %>% group_by(tz_name) %>% summarize(arrdelay = mean(arrdelay), distance = mean(distance)) %>% filter(freq > 500) %>% collect()
-
-  ggplot(plotn) + geom_boxploth(aes(x = tz_name, y = arrdelay,
-                                     colour = cut_number(distance , 10)))
+  ggplot(plotn) + geom_boxplot(aes(x = distance, y = arrdelay,
+                                     colour = tz_name))
 ```
 
 
-**Answer**:  
+**Answer**: For each of the different time zone names, we plot the average arrival delay for the average distance. We see that American/Achorage has the longest arrival delay in minutes, and that America/Puerto-Rico has the shortest average arrival delay despite having the longest average flight distance.
 
 
 ```{r, evaluate = T, include = FALSE, echo = FALSE}
