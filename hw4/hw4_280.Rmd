@@ -6,7 +6,7 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE, echo= FALSE}
-knitr::opts_chunk$set(echo = FALSE, cache = TRUE, error = TRUE)
+knitr::opts_chunk$set(echo = FALSE, cache = TRUE, error = TRUE, warning = FALSE)
 if(!"pacman" %in% row.names(installed.packages())){install.packages("pacman") & load("pacman")}
 
 # these are packages you will need
@@ -25,7 +25,7 @@ states = map_data("state")
 #2
 Sys.setenv(SPARK_HOME="/usr/lib/spark")
 config <- spark_config()
-sc <- spark_connect(master = "yarn-client", config = config)
+sc <- spark_connect(master = "local", config = config)
 ```
 
 ```{r}
@@ -75,7 +75,7 @@ ggplot() +
       #geom_text(aes(x = Longitude, y = Latitude, label = as.character(top10busiestAirports)), check_overlap = TRUE) +
       scale_size(name = "Total Flights (in millions)", range = c(1, 5)) +
       labs(x = "Longitude", y = "Latitude", title = "Top 10 Busiest Airports in USA") +
-      coord_fixed(1.5)
+      coord_fixed(1.5)  + theme(legend.position="none")
 ```
 
 **Answer**: The top 10 busiest airports with the most flights going in and out of its facilities are:
@@ -121,9 +121,8 @@ coord_fixed(1.3) +
 geom_point(data = long10busypath, aes(x = Longitudes, y = Latitudes), color = "black") + 
 geom_curve(data = top10busiestpathLL, aes(x = as.numeric(Longitude.x), y = as.numeric(Latitude.x), xend = as.numeric(Longitude.y), yend = as.numeric(Latitude.y))) +
 labs(title = "Map of Top 10 Busiest Routes", 
-x = "Longitude (Degrees)", y = "Latitude (Degrees)") 
+x = "Longitude (Degrees)", y = "Latitude (Degrees)")  + theme(legend.position="none")
 
-uniquelabels2 = top10buspathwithlatlong1[!duplicated(top10buspathwithlatlong1[1]),]
 
 #+ geom_label_repel(data = long10busypath,  aes(x = Longitudes, y = Latitudes), label = long10busypath$Destination)
 ```
@@ -251,6 +250,8 @@ fromLAX3 = flights_tbl %>%
     filter(!is.na(tz_name) & !is.na(alt)) %>%
     select(year, month, arrdelay, depdelay, destination = dest, distance, uniquecarrier, description, tz_name, alt) %>%
 group_by(destination) %>% mutate(n_fromLAX = count()) %>% arrange(desc(n_fromLAX))
+
+
 ```
 
 ```{r}
@@ -300,63 +301,65 @@ deciles %>%
     
 ```{r}
 #16
-data_2008 = flights_tbl %>%
-    filter(!is.na(arrdelay) & !is.na(depdelay) & !is.na(distance) & origin == "LAX" & (cancelled == 0)) %>% filter(depdelay > 15 & depdelay < 240) %>% #filter outliers
-    filter(arrdelay > -60 & arrdelay < 360) %>% #filter outliers
-    filter(year == 2008) %>%
-    left_join(airports_tbl, by = c("dest" = "faa")) %>% 
-    filter(!is.na(tz_name) & !is.na(alt)) %>%
-    select(year, month, arrdelay, depdelay, dest, distance, uniquecarrier, tz_name, alt)
+data08 = fromLAX3 %>% filter(year == 2008 & !is.na(tz_name) & !is.na(alt)) %>% select(uniquecarrier, tzname, arrdelay, alt, depdelay, distance)
 
+carrier <- sdf_predict(x = data08, model = ml1) %>%
+  group_by(uniquecarrier) %>% summarize(arrdelay = mean(arrdelay), prediction = mean(prediction), freq = n()) %>% filter(freq > 500) %>% collect()
 
-decile2008 <- sdf_predict(x = data_2008, model = ml1) %>% select(arrdelay, uniquecarrier, prediction)
+# Plot actual gains and predicted gains by airline carrier
+ggplot(carrier, aes(arrdelay, prediction)) + 
+  geom_point(alpha = 0.75, color = 'red', shape = 3) +
+  geom_abline(intercept = 0, slope = 1, alpha = 0.15, color = 'blue') +
+  geom_text(aes(label = substr(description, 1, 20)), size = 3, alpha = 0.75, vjust = -1) +
+  labs(title='Average Arrival Delay Forecast', x = 'Actual', y = 'Predicted')
 
 ```
+
+**Answer**:  We have built a predictive model for the arrival delay (`arrdelay`) of flights flying from LAX using the same filtering criteria as in the [lecture notes](http://hua-zhou.github.io/teaching/biostatm280-2018winter/slides/12-sparklyr/sparklyr-flights.html). We subset the data into independent training and validation sets, with 80 % of the data being allocated to the train the model and 20% of the data being used to test the model based on the training set. The 5 predictors are distance, departure delay, unique carrier, time zone name, and altitude. The prediction performance of your model on the validation data set is provided below:
+R-Squared: 0.8861
+Root Mean Squared Error: 13.26
+
+To confirm the predictive performance of our model, we plot the average arrival delay by predicted decile above. We see that the training and validation prediction deciles are quite close in terms of comparison, and conclude that our choice of predictors are good. 
 
 
 5. Visualize and explain any other information you want to explore.
 
 ```{r}
 #17
-pre911 = model_data_pre911 %>% group_by(description , year) %>% summarise(arrivaldelay = mean(arrdelay))
+data_post911 = fromLAX3 
 
-post911 = model_data %>% group_by(description , year) %>% summarise(arrivaldelay = mean(arrdelay))
+pre911 = flights_tbl %>% filter(year <= 2001) %>%
+    filter(!is.na(arrdelay) & !is.na(depdelay) & !is.na(distance) & origin == "LAX" & (cancelled == 0)) %>%
+    filter(depdelay > 15 & depdelay < 240) %>% #filter outliers
+    filter(arrdelay > -60 & arrdelay < 360) %>% #filter outliers
+    left_join(airlines_tbl, by = c("uniquecarrier" = "code")) %>% # merge by the columns
+    inner_join(airports_tbl, by = c("dest" = "faa")) %>% 
+    filter(!is.na(tz_name) & !is.na(alt)) %>%
+    select(year, month, arrdelay, depdelay, destination = dest, distance, uniquecarrier, description, tz_name, alt) %>% group_by(uniquecarrier) %>% summarise(arrivaldelay = mean(arrdelay)) %>% collect()
 
-pre911 %>% group_by(year, description) %>% ggplot(aes(x = as.factor(year), y = mean(arrivaldelay))) + geom_bar(stat = "identity") +
-      labs(title = "LAX Air Traffic Pre - 9/11",
-           x = "Year", y = "Mean Arrival Delay")
+post911 = data_post911 %>% group_by(uniquecarrier) %>% summarise(arrivaldelay = mean(arrdelay)) %>% collect()
 
-post911 %>% group_by(year, description) %>% ggplot(aes(x = as.factor(year), y = mean(arrivaldelay))) + geom_bar(stat = "identity") +
-      labs(title = "LAX Air Traffic Post - 9/11",
-           x = "Year", y = "Mean Arrival Delay")
+nineleven = inner_join(pre911, post911, by = "uniquecarrier")
+names(nineleven) = c("uniquecarrier", "arrivaldelay", "arrivaldelay")
 
-model_data %>%
-  mutate(id = row_number()) %>%
-  select(x, y, z, id) %>%
-  gather(variable, value, -id)  %>%
-  ggplot(aes(x = value)) +
-  geom_histogram(bins = 500) +
-  geom_rug() +
-  facet_grid(variable ~ .)
+nineeleven <- rbind(
+  data.frame(data = 'pre911', nineleven[,c(1,2)]),
+  data.frame(data = 'post911', nineleven[,c(1,3)]),
+  make.row.names = FALSE
+)
+
+nineeleven %>%
+  ggplot(aes(factor(uniquecarrier), arrivaldelay, fill = data)) +
+  geom_bar(stat = 'identity', position = 'dodge') +
+  labs(title = 'Average Arrival Delay Pre and Post 9/11 (2001)', x = 'Unique Carrier', y = 'Minutes')
 
 ```
 
 ```{r}
-#deciles %>% mutate(sum = sum()) %>%
-#    ggplot(aes(sched_dep_time)) +
-#    geom_density() +
-#    facet_grid(~cancelled) + 
-#    labs(title = "Departure Time Cancelled (T) vs. Not Cancelled (F) Flights")
+plotn = data08 %>% group_by(tz_name) %>% summarize(arrdelay = mean(arrdelay), distance = mean(distance)) %>% filter(freq > 500) %>% collect()
 
-data.frame(data = 'train', data_2008)
-
-ggplot() + geom_boxploth(aes(x = tz_name, y = arrdelay,
+  ggplot(plotn) + geom_boxploth(aes(x = tz_name, y = arrdelay,
                                      colour = cut_number(distance , 10)))
-
-LAXseason2 %>% group_by(year) %>% ggplot(aes(x = as.factor(year), y = n_season / 1000000, fill = season)) + geom_bar(stat = "identity") +
-      labs(title = "LAX Air Traffic Seasonal Effects",
-           x = "Year", y = "Flights (in millions)", fill = "Season") + scale_fill_manual(values = c("lightblue1", "powderblue", "lightblue3", "lightblue4")) + theme_light()
-
 ```
 
 
