@@ -7,8 +7,7 @@ output: html_document
 
 ```{r setup, include = FALSE, echo= FALSE, cache = TRUE, warning = FALSE}
 knitr::opts_chunk$set(echo = FALSE, cache = TRUE, error = TRUE, warning = FALSE)
-if(!"pacman" %in% row.names(installed.packages())){install.packages("pacman") & 
-    load("pacman")}
+if(!"pacman" %in% row.names(installed.packages())){install.packages("pacman") & load("pacman")}
 
 # these are packages you will need
 devtools::install_github("dkahle/ggmap")
@@ -43,13 +42,13 @@ flightzdest = flights_tbl %>% filter(cancelled == 0) %>%
   select(origin, dest) %>% group_by(dest) %>% summarise(n_dest = count()) %>%
   arrange(desc(n_dest)) %>% collect()
 
-flightzorigin = flights_tbl %>% filter(cancelled==0) %>% 
+flightzorigin = flights_tbl %>% filter(cancelled == 0) %>% 
   select(origin, dest) %>% group_by(origin) %>% 
   summarise(n_origin = count()) %>% arrange(desc(n_origin)) %>% collect() 
 
 flightstotal = left_join(flightzorigin, flightzdest, 
                          by = c("origin" = "dest")) %>%
-  mutate(N = (n_origin + n_dest)/1000000) %>% arrange(desc(N))
+  mutate(N = (n_origin + n_dest) / 1000000) %>% arrange(desc(N))
 
 names(flightstotal) = c("Airport", "n_origin", "n_dest", 
                         "Total Flights (in millions)")
@@ -91,9 +90,10 @@ ggplot() +
       labs(x = "Longitude", y = "Latitude",
            title = "Top 10 Busiest Airports in USA") +
       coord_fixed(1.5)  + theme(legend.position="none")
+
 ```
 
-**Answer**: The top 10 busiest airports with the most flights going in and out of its facilities are:
+**Answer**: The top 10 busiest airports with the most flights going in and out of its facilities are: "ORD", "ATL", "DFW", "LAX", "PHX", "DEN", "DTW", "IAH", "MSP" and "SFO" airport. The size of the dots reflect the number of flights coming in and out. 
 
 
 2. Map the top 10 busiest direct routes. Size of lines should reflect the number of flights through that route.
@@ -183,17 +183,17 @@ LAXflightsbyday %>% arrange(year, month, dayofmonth) %>%
 We notice there is a Holidays effect on the number of flights that come in and out of LAX per day. 9/11 is a historic moment in America,
 especially for those working in the airlines industry. While (1) 9/11 is not a holiday that repeats, the rest of the numbered dates are as follows:
 
-Patterns in the data / Borderline Conspiracy Theories:
-(1) Fallout of 9/11. A truly tragic piece of American History unfolds and with it comes the fallout..
-(2) November 25, 2004, n = 1,019 : Thanksgiving ! Everyone is flying home to see their family members to celebrate thanksgiving.
-or ~ The LAX Plan, a law passed on September 29, 2004, to upgrade needed facilities to accomodate current and next generation larger aircraft associated with internationa and long haul domestic travel. https://www.lawa.org/-/media/lawa-web/lawa-our-lax/finallaxplan_092904.ashx
-(3) July 4, 2004, n = 1,060 : Independence Day! 
-(4) January 1, 2008, n = 1,292 : New Years Day!
-or ~ brings on a grim year for a financial crash soon to come, risk averse population.
+Patterns in the data / Borderline Conspiracy Theories:<\br>
+(1) Fallout of 9/11. A truly tragic piece of American History unfolds and with it comes the fallout..<\br>
+(2) November 25, 2004, n = 1,019 : Thanksgiving ! Everyone is flying home to see their family members to celebrate thanksgiving.<\br>
+or ~ The LAX Plan, a law passed on September 29, 2004, to upgrade needed facilities to accomodate current and next generation larger aircraft associated with internationa and long haul domestic travel. https://www.lawa.org/-/media/lawa-web/lawa-our-lax/finallaxplan_092904.ashx<\br>
+(3) July 4, 2004, n = 1,060 : Independence Day! <\br>
+(4) January 1, 2008, n = 1,292 : New Years Day!<\br>
+or ~ brings on a grim year for a financial crash soon to come, risk averse population.<\br>
 or ~ The super jumbo jet A380 by Airbus was intended to have its first landing in the United States at the LAX airport in September. 
-The A380, is the largest commercial plane that seats 555 passengers, significantly more than it's predecessor, the 747. The airbus could help space-constrained airports, including LAX, by allowing carriers to combine several flights into one.
-http://www.latimes.com/travel/la-trw-airbus18mar18-story.html
-(5) January 1, 2001, n = 1,299: New Years Day! 
+The A380, is the largest commercial plane that seats 555 passengers, significantly more than it's predecessor, the 747. The airbus could help space-constrained airports, including LAX, by allowing carriers to combine several flights into one.<\br>
+http://www.latimes.com/travel/la-trw-airbus18mar18-story.html<\br>
+(5) January 1, 2001, n = 1,299: New Years Day! <\br>
 
 
     (b). Visualize and explain seasonal effects.
@@ -334,23 +334,48 @@ deciles %>%
   labs(title = 'Average Arrival Delay by Predicted Decile',
        x = 'Decile', y = 'Minutes')
 
-timeandalt = airports_tbl %>% select(tz_name, alt, faa)
-data_08 <- flights_tbl %>%
-    filter(!is.na(arrdelay) & !is.na(depdelay) & !is.na(distance) &
-             origin == "LAX" & (cancelled == 0)) %>%
-    filter(depdelay > 15 & depdelay < 240) %>% #filter outliers
-    filter(arrdelay > -60 & arrdelay < 360) %>% #filter outliers
-    filter(year == 2008) %>%
-    left_join(airlines_tbl, by = c("uniquecarrier" = "code")) %>% # merge by the columns
-    select(year, month, arrdelay, depdelay, destination = dest, distance,
-           uniquecarrier, description) %>%
-    inner_join(timeandalt, by = c("destination" = "faa")) %>%
-  select(year, month, arrdelay, depdelay, destination, distance, uniquecarrier,
-         description, tz_name, alt)
+#timeandalt = airports_tbl %>% select(tz_name, alt, faa)
+#data_08 <- flights_tbl %>%
+#    filter(!is.na(arrdelay) & !is.na(depdelay) & !is.na(distance) &
+#             origin == "LAX" & (cancelled == 0)) %>%
+#    filter(depdelay > 15 & depdelay < 240) %>% #filter outliers
+#    filter(arrdelay > -60 & arrdelay < 360) %>% #filter outliers
+#    filter(year == 2008) %>%
+#    left_join(airlines_tbl, by = c("uniquecarrier" = "code")) %>% # merge by the columns
+#    select(year, month, arrdelay, depdelay, destination = dest, distance,
+#           uniquecarrier, description) %>%
+#    inner_join(timeandalt, by = c("destination" = "faa")) %>%
+#  select(year, month, arrdelay, depdelay, destination, distance, uniquecarrier,
+#         description, tz_name, alt)
 ```
     
 ```{r}
 #16
+carrier <- sdf_predict(ml1, model_partition$valid) %>% group_by(description) %>%
+summarize(arrdelay = mean(arrdelay),
+          prediction = mean(prediction), freq = n()) %>%
+filter(freq > 300) %>% collect()
+
+# Plot actual gains and predicted gains by airline carrier
+ggplot(carrier, aes(arrdelay, prediction)) + 
+  geom_point(alpha = 0.75, color = 'red', shape = 3) +
+  geom_abline(intercept = 0, slope = 1, alpha = 0.15, color = 'blue') +
+  geom_text(aes(label = substr(description, 1, 20)), size = 3, 
+            alpha = 0.75, vjust = -1) +
+  labs(title='Average Arrival Delay Forecast', x = 'Actual', y = 'Predicted')
+
+```
+
+**Answer**:  We have built a predictive model for the arrival delay (`arrdelay`) of flights flying from LAX using the same filtering criteria as in the [lecture notes](http://hua-zhou.github.io/teaching/biostatm280-2018winter/slides/12-sparklyr/sparklyr-flights.html). We subset the data into independent training and validation sets, with 80 % of the data being allocated to the train the model and 20% of the data being used to test the model based on the training set. The 5 predictors are distance, departure delay, unique carrier, time zone name, and altitude. To confirm the predictive performance of our model, we plot the average arrival delay by predicted decile above. We see that the training and validation prediction deciles are quite close in terms of comparison, and conclude that our choice of predictors are good. Initially, I wanted to also test my model on the 2008 data, but as there are major cluster issues and Hua says its ok, I just test my model on the validation set. 
+
+The prediction performance of the model on the validation data set is provided below:
+R-Squared: 0.8861
+Root Mean Squared Error: 13.26
+
+
+5. Visualize and explain any other information you want to explore.
+
+```{r}
 data_2008 <- flights_tbl %>%
     filter(!is.na(arrdelay) & !is.na(depdelay) & !is.na(distance) 
            & origin == "LAX" & (cancelled == 0)) %>%
@@ -363,30 +388,6 @@ data_2008 <- flights_tbl %>%
     select(year, month, arrdelay, depdelay, destination = dest, distance,
            uniquecarrier, description, tz_name, alt)
 
-carrier <- sdf_predict(ml1, data_08)%>% group_by(description) %>%
-summarize(gain = mean(arrdelay), prediction = mean(prediction), freq = n()) %>%
-filter(freq > 10000) %>% collect()
-
-# Plot actual gains and predicted gains by airline carrier
-ggplot(carrier, aes(arrdelay, prediction)) + 
-  geom_point(alpha = 0.75, color = 'red', shape = 3) +
-  geom_abline(intercept = 0, slope = 1, alpha = 0.15, color = 'blue') +
-  geom_text(aes(label = substr(description, 1, 20)), size = 3, 
-            alpha = 0.75, vjust = -1) +
-  labs(title='Average Arrival Delay Forecast', x = 'Actual', y = 'Predicted')
-
-```
-
-**Answer**:  We have built a predictive model for the arrival delay (`arrdelay`) of flights flying from LAX using the same filtering criteria as in the [lecture notes](http://hua-zhou.github.io/teaching/biostatm280-2018winter/slides/12-sparklyr/sparklyr-flights.html). We subset the data into independent training and validation sets, with 80 % of the data being allocated to the train the model and 20% of the data being used to test the model based on the training set. The 5 predictors are distance, departure delay, unique carrier, time zone name, and altitude. The prediction performance of your model on the validation data set is provided below:
-R-Squared: 0.8861
-Root Mean Squared Error: 13.26
-
-To confirm the predictive performance of our model, we plot the average arrival delay by predicted decile above. We see that the training and validation prediction deciles are quite close in terms of comparison, and conclude that our choice of predictors are good. 
-
-
-5. Visualize and explain any other information you want to explore.
-
-```{r}
 plotn = data_2008 %>% group_by(tz_name) %>% 
   summarize(arrdelay = mean(arrdelay), distance = mean(distance)) %>% collect()
 
