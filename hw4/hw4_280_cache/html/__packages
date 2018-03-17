@@ -1,0 +1,12 @@
+base
+sparklyr
+dplyr
+ggplot2
+ggmap
+maps
+mapdata
+haven
+ggrepel
+pacman
+bindrcpp
+lubridate
